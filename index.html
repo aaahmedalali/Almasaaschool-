@@ -3,690 +3,666 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>منصة مدرسة المسعى للتعليم الأساسي للبنين (٥-٩)</title>
+<title>منصة مدرسة المسعى (٥-٩)</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<script>
-tailwind.config={theme:{extend:{fontFamily:{sans:['Cairo','sans-serif']},
-colors:{primary:{DEFAULT:'#047857',light:'#10B981',dark:'#065F46',soft:'#ECFDF5'},
-accent:{DEFAULT:'#F59E0B',soft:'#FEF3C7'},danger:{DEFAULT:'#DC2626',soft:'#FEE2E2'}}}}}
-</script>
 <style>
-body{font-family:'Cairo',sans-serif;background:#F8FAFC}
-.fade-in{animation:f .3s}@keyframes f{from{opacity:0}to{opacity:1}}
+body{font-family:'Cairo',sans-serif;background:#F8FAFC;margin:0}
+.hidden{display:none!important}
 @media print{.no-print{display:none!important}}
 </style>
 </head>
 <body>
-<div id="root"></div>
+
+<div class="min-h-screen flex flex-row-reverse">
+
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed lg:static top-0 right-0 h-screen w-72 bg-white border-l border-slate-200 z-40 transform translate-x-full lg:translate-x-0 transition-transform flex flex-col">
+  <div class="p-5 border-b flex items-center gap-3">
+    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+      <span class="text-amber-400 text-2xl font-black">م</span>
+    </div>
+    <div>
+      <div class="font-black text-emerald-700 text-sm">مدرسة المسعى</div>
+      <div class="text-xs text-slate-500">التعليم الأساسي للبنين ٥-٩</div>
+    </div>
+  </div>
+  <nav class="flex-1 p-3 space-y-1">
+    <button onclick="showPage('dash')" data-page="dash" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>📊</span>لوحة التحكم</button>
+    <button onclick="showPage('entry')" data-page="entry" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>✍️</span>تسجيل سلوك</button>
+    <button onclick="showPage('log')" data-page="log" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>📋</span>سجل السلوكيات</button>
+    <button onclick="showPage('students')" data-page="students" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>👥</span>الطلبة</button>
+    <button onclick="showPage('ai')" data-page="ai" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>🧠</span>الإرشاد الذكي</button>
+    <button onclick="showPage('alerts')" data-page="alerts" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>🔔</span>التنبيهات <span id="alertBadge" class="bg-red-600 text-white text-xs rounded-full px-2 hidden"></span></button>
+    <button onclick="showPage('reports')" data-page="reports" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-700 hover:bg-emerald-50"><span>📄</span>التقارير</button>
+  </nav>
+</aside>
+
+<!-- Main -->
+<main class="flex-1 overflow-x-hidden">
+  <button onclick="document.getElementById('sidebar').classList.toggle('translate-x-full')" class="lg:hidden fixed top-4 right-4 z-50 bg-emerald-700 text-white p-3 rounded-xl shadow-lg no-print">☰</button>
+  <div id="content" class="p-4 lg:p-8 pt-20 lg:pt-8"></div>
+</main>
+</div>
+
 <script>
-const {useState,useEffect,useMemo,useCallback}=React;
-const html=htm.bind(React.createElement);
-const GRADES=[5,6,7,8,9],SECTIONS=['أ','ب','ج'];
-const POS=[{id:'p1',l:'مشاركة فعالة في الحصة',p:2},{id:'p2',l:'مساعدة زميل',p:3},
+// ===== البيانات =====
+const GRADES=[5,6,7,8,9], SECTIONS=['أ','ب','ج'];
+const POS=[
+{id:'p1',l:'مشاركة فعالة في الحصة',p:2},{id:'p2',l:'مساعدة زميل',p:3},
 {id:'p3',l:'الالتزام بالواجبات',p:2},{id:'p4',l:'سلوك متميز في الطابور',p:2},
-{id:'p5',l:'تحسن ملحوظ في الأداء',p:4},{id:'p6',l:'مبادرة إيجابية متميزة',p:3},
-{id:'p7',l:'المحافظة على النظافة',p:2},{id:'p8',l:'تمثيل المدرسة في نشاط',p:5}];
-const NEG=[{id:'n1',l:'تأخر عن الحصة',p:1},{id:'n2',l:'عدم إحضار الأدوات',p:2},
+{id:'p5',l:'تحسن ملحوظ في الأداء',p:4},{id:'p6',l:'مبادرة إيجابية',p:3},
+{id:'p7',l:'المحافظة على النظافة',p:2},{id:'p8',l:'تمثيل المدرسة',p:5}];
+const NEG=[
+{id:'n1',l:'تأخر عن الحصة',p:1},{id:'n2',l:'عدم إحضار الأدوات',p:2},
 {id:'n3',l:'إزعاج الصف',p:2},{id:'n4',l:'التلفظ بألفاظ غير لائقة',p:3},
 {id:'n5',l:'التخلف عن الطابور',p:1},{id:'n6',l:'مشاجرة مع زميل',p:5},
 {id:'n7',l:'إتلاف ممتلكات المدرسة',p:5},{id:'n8',l:'الغياب بدون عذر',p:3},
-{id:'n9',l:'استخدام الهاتف داخل الصف',p:3},{id:'n10',l:'عدم تنفيذ التوجيهات',p:2}];
-const NAMES=['أحمد بن سالم الرواحي','محمد بن خالد البلوشي','يوسف بن علي المعمري',
-'عبدالله بن حمد الحارثي','سعيد بن راشد الكندي','خالد بن ناصر الفارسي',
-'سلطان بن ماجد الشكيلي','حمزة بن ياسر العامري','طلال بن سعيد الهنائي',
-'فهد بن عبدالرحمن الزدجالي','بدر بن سليمان الريامي','مازن بن حمدان الحجري',
-'معاذ بن طارق السعدي','أيمن بن وليد المقبالي','راشد بن سيف الخروصي',
-'هلال بن منصور الغافري','نبيل بن عامر الحوسني','قيس بن مروان الوهيبي',
-'زياد بن فارس اليعقوبي','مروان بن أيمن السيابي','حاتم بن صالح العبري',
-'عمار بن نبيل الجابري','أنس بن كمال الرئيسي','بلال بن هيثم المخيني',
-'جعفر بن عادل الشعيلي','كرم بن رامي الصوافي','ليث بن جابر الحسني',
-'مصعب بن أنور البوسعيدي','نزار بن صقر الهاشمي','وسام بن فاروق الأغبري',
-'ياسر بن رمزي العجمي','يعقوب بن إسحاق النعماني','أسامة بن زهير الكلباني',
-'إبراهيم بن نوح المسروري','إسماعيل بن ياسين الحبسي','بشار بن حكيم الشيباني',
-'تمام بن سامي البطاشي','ثامر بن سليمان القريني','جاسم بن جابر العويسي',
-'حسام بن لؤي المزروعي','رشيد بن عامر البلوشي','سامر بن منير الحديدي',
-'شادي بن بشير اللواتي','صفوان بن رشيد الرحبي','طلحة بن زياد الفليتي',
-'عبيد بن مبارك الوائلي','غيث بن هلال المحروقي','فيصل بن جمعة الروشدي'];
-const TEACHERS=['أ. سعيد العامري','أ. خالد البلوشي','أ. محمد المعمري',
-'أ. يوسف الحارثي','أ. أحمد الرواحي','أ. حمود الكندي','أ. راشد الفارسي','أ. سالم الشكيلي'];
+{id:'n9',l:'استخدام الهاتف في الصف',p:3},{id:'n10',l:'عدم تنفيذ التوجيهات',p:2}];
+const NAMES=['أحمد بن سالم الرواحي','محمد بن خالد البلوشي','يوسف بن علي المعمري','عبدالله بن حمد الحارثي','سعيد بن راشد الكندي','خالد بن ناصر الفارسي','سلطان بن ماجد الشكيلي','حمزة بن ياسر العامري','طلال بن سعيد الهنائي','فهد بن عبدالرحمن الزدجالي','بدر بن سليمان الريامي','مازن بن حمدان الحجري','معاذ بن طارق السعدي','أيمن بن وليد المقبالي','راشد بن سيف الخروصي','هلال بن منصور الغافري','نبيل بن عامر الحوسني','قيس بن مروان الوهيبي','زياد بن فارس اليعقوبي','مروان بن أيمن السيابي','حاتم بن صالح العبري','عمار بن نبيل الجابري','أنس بن كمال الرئيسي','بلال بن هيثم المخيني','جعفر بن عادل الشعيلي','كرم بن رامي الصوافي','ليث بن جابر الحسني','مصعب بن أنور البوسعيدي','نزار بن صقر الهاشمي','وسام بن فاروق الأغبري','ياسر بن رمزي العجمي','يعقوب بن إسحاق النعماني','أسامة بن زهير الكلباني','إبراهيم بن نوح المسروري','إسماعيل بن ياسين الحبسي','بشار بن حكيم الشيباني','تمام بن سامي البطاشي','ثامر بن سليمان القريني','جاسم بن جابر العويسي','حسام بن لؤي المزروعي','رشيد بن عامر البلوشي','سامر بن منير الحديدي','شادي بن بشير اللواتي','صفوان بن رشيد الرحبي','طلحة بن زياد الفليتي','عبيد بن مبارك الوائلي','غيث بن هلال المحروقي','فيصل بن جمعة الروشدي'];
+const TEACHERS=['أ. سعيد العامري','أ. خالد البلوشي','أ. محمد المعمري','أ. يوسف الحارثي','أ. أحمد الرواحي','أ. حمود الكندي','أ. راشد الفارسي','أ. سالم الشكيلي'];
 
+// ===== التخزين =====
+const KEY='almasaa_v3';
 function seed(){
-  const students=NAMES.map((n,i)=>({id:'S'+String(i+1).padStart(3,'0'),name:n,
-    grade:GRADES[i%5],section:SECTIONS[i%3],guardian:'ولي أمر '+n.split(' ')[0],
-    phone:'9'+(1000000+Math.floor(Math.random()*8999999))}));
-  const behaviors=[];const now=Date.now();
-  for(let i=0;i<220;i++){
+  const students=NAMES.map((n,i)=>({id:'S'+String(i+1).padStart(3,'0'),name:n,grade:GRADES[i%5],section:SECTIONS[i%3],guardian:'ولي أمر '+n.split(' ')[0],phone:'9'+(1000000+Math.floor(Math.random()*8999999))}));
+  const behaviors=[],now=Date.now();
+  for(let i=0;i<200;i++){
     const s=students[Math.floor(Math.random()*students.length)];
     const isP=Math.random()<0.6;
     const c=isP?POS[Math.floor(Math.random()*POS.length)]:NEG[Math.floor(Math.random()*NEG.length)];
-    const days=Math.floor(Math.random()*60);
-    behaviors.push({id:'B'+i,studentId:s.id,type:isP?'positive':'negative',
-      category:c.l,points:isP?c.p:-c.p,description:'',teacher:TEACHERS[Math.floor(Math.random()*TEACHERS.length)],
-      createdAt:now-days*864e5-Math.floor(Math.random()*864e5),archived:false});
+    const d=Math.floor(Math.random()*60);
+    behaviors.push({id:'B'+i,studentId:s.id,type:isP?'positive':'negative',category:c.l,points:isP?c.p:-c.p,description:'',teacher:TEACHERS[Math.floor(Math.random()*TEACHERS.length)],createdAt:now-d*864e5,archived:false});
   }
   [0,3,7,12].forEach((idx,k)=>{
-    for(let j=0;j<5+k;j++){
-      const c=NEG[j%NEG.length];
-      behaviors.push({id:'BR'+k+'_'+j,studentId:students[idx].id,type:'negative',
-        category:c.l,points:-c.p,description:'تكرار',teacher:TEACHERS[j%TEACHERS.length],
-        createdAt:now-(j+1)*3*864e5,archived:false});
-    }
-  });
+    for(let j=0;j<5+k;j++){const c=NEG[j%NEG.length];
+      behaviors.push({id:'BR'+k+'_'+j,studentId:students[idx].id,type:'negative',category:c.l,points:-c.p,description:'تكرار',teacher:TEACHERS[j%TEACHERS.length],createdAt:now-(j+1)*3*864e5,archived:false});
+    }});
   behaviors.sort((a,b)=>b.createdAt-a.createdAt);
   return {students,behaviors};
 }
-const KEY='almasaa_v2';
-function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return seed()}
-function save(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+let DB;
+try{const r=localStorage.getItem(KEY);DB=r?JSON.parse(r):seed();}catch(e){DB=seed();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+
+// ===== أدوات =====
 const fmtDate=t=>new Date(t).toLocaleDateString('ar-OM',{year:'numeric',month:'short',day:'numeric'});
 const timeAgo=t=>{const d=Math.floor((Date.now()-t)/864e5);return d===0?'اليوم':d===1?'أمس':'قبل '+d+' يوم'};
+const getStudent=id=>DB.students.find(s=>s.id===id);
 
-function analyze(students,behaviors){
+function analyze(){
   const now=Date.now();
-  const in30=behaviors.filter(b=>!b.archived&&now-b.createdAt<=30*864e5);
-  const smap=Object.fromEntries(students.map(s=>[s.id,s]));
-  const stats={};
-  students.forEach(s=>stats[s.id]={neg:0,pos:0});
+  const in30=DB.behaviors.filter(b=>!b.archived&&now-b.createdAt<=30*864e5);
+  const stats={};DB.students.forEach(s=>stats[s.id]={pos:0,neg:0});
   in30.forEach(b=>{if(stats[b.studentId]){if(b.type==='negative')stats[b.studentId].neg++;else stats[b.studentId].pos++;}});
-  const risk=students.map(s=>{const st=stats[s.id];const t=st.neg+st.pos;
-    const r=t?st.neg/t:0;let lvl='low';
-    if(st.neg>=4||r>=0.7)lvl='high';else if(st.neg>=2||r>=0.5)lvl='medium';
-    return{...s,...st,negRatio:r,risk:lvl};}).filter(s=>s.risk!=='low')
-    .sort((a,b)=>(b.risk==='high'?1:0)-(a.risk==='high'?1:0)||b.neg-a.neg);
-  const cc={};in30.filter(b=>b.type==='negative').forEach(b=>{cc[b.category]=(cc[b.category]||0)+1;});
-  const patterns=Object.entries(cc).map(([cat,count])=>({cat,count})).sort((a,b)=>b.count-a.count).slice(0,5);
-  const byGrade=GRADES.map(g=>({grade:g,
-    positive:in30.filter(b=>{const s=smap[b.studentId];return s&&s.grade===g&&b.type==='positive'}).length,
-    negative:in30.filter(b=>{const s=smap[b.studentId];return s&&s.grade===g&&b.type==='negative'}).length}));
+  const risk=DB.students.map(s=>{const st=stats[s.id];const t=st.neg+st.pos;const r=t?st.neg/t:0;
+    let lvl='low';if(st.neg>=4||r>=0.7)lvl='high';else if(st.neg>=2||r>=0.5)lvl='medium';
+    return{...s,...st,risk:lvl};}).filter(s=>s.risk!=='low').sort((a,b)=>(b.risk==='high'?1:0)-(a.risk==='high'?1:0)||b.neg-a.neg);
+  const cc={};in30.filter(b=>b.type==='negative').forEach(b=>cc[b.category]=(cc[b.category]||0)+1);
+  const patterns=Object.entries(cc).map(([c,n])=>({cat:c,count:n})).sort((a,b)=>b.count-a.count).slice(0,5);
+  const byGrade=GRADES.map(g=>{const gs=DB.students.filter(s=>s.grade===g).map(s=>s.id);
+    return{grade:g,positive:in30.filter(b=>gs.includes(b.studentId)&&b.type==='positive').length,negative:in30.filter(b=>gs.includes(b.studentId)&&b.type==='negative').length};});
   const tp=in30.filter(b=>b.type==='positive').length,tn=in30.filter(b=>b.type==='negative').length;
   const rec=[];
-  if(patterns[0]&&patterns[0].count>=5)rec.push({i:'⚠️',lv:'warn',t:`النمط "${patterns[0].cat}" تكرر ${patterns[0].count} مرة. يُنصح بحملة توعوية.`});
+  if(patterns[0]&&patterns[0].count>=5)rec.push({i:'⚠️',lv:'warn',t:'النمط "'+patterns[0].cat+'" تكرر '+patterns[0].count+' مرة. يُنصح بحملة توعوية.'});
   const hr=risk.filter(s=>s.risk==='high');
-  if(hr.length)rec.push({i:'🔔',lv:'danger',t:`${hr.length} طالباً في خطر مرتفع. يُقترح خطة تدخل فردية مع المرشد.`});
-  if(tp>tn*1.5)rec.push({i:'✅',lv:'ok',t:`المؤشر إيجابي (${tp} تعزيز مقابل ${tn} مخالفة). استمروا بتعزيز الدافعية.`});
-  else if(tn>tp)rec.push({i:'📉',lv:'warn',t:`المخالفات (${tn}) تتجاوز التعزيز (${tp}). راجعوا لائحة السلوك.`});
+  if(hr.length)rec.push({i:'🔔',lv:'danger',t:hr.length+' طالباً في خطر مرتفع. يُقترح خطة تدخل فردية.'});
+  if(tp>tn*1.5)rec.push({i:'✅',lv:'ok',t:'المؤشر إيجابي ('+tp+' تعزيز مقابل '+tn+' مخالفة).'});
+  else if(tn>tp)rec.push({i:'📉',lv:'warn',t:'المخالفات ('+tn+') تتجاوز التعزيز ('+tp+').'});
   const wg=[...byGrade].sort((a,b)=>b.negative-a.negative)[0];
-  if(wg&&wg.negative>5)rec.push({i:'🎯',lv:'info',t:`الصف ${wg.grade} الأعلى مخالفات (${wg.negative}). اجتماع مع مربي الصف.`});
+  if(wg&&wg.negative>5)rec.push({i:'🎯',lv:'info',t:'الصف '+wg.grade+' الأعلى مخالفات ('+wg.negative+').'});
   if(!rec.length)rec.push({i:'🟢',lv:'ok',t:'لا أنماط سلبية حرجة حالياً.'});
-  return{in30,risk,patterns,byGrade,rec,tp,tn};
+  return{in30,risk,patterns,byGrade,rec,tp,tn,stats};
 }
 
-function Badge({c='slate',children}){
-  const cls={slate:'bg-slate-100 text-slate-700',green:'bg-primary-soft text-primary-dark',
-    red:'bg-danger-soft text-danger',amber:'bg-accent-soft text-amber-800',
-    blue:'bg-blue-100 text-blue-700'}[c];
-  return html`<span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${cls}">${children}</span>`;}
+// ===== الصفحات =====
+let currentPage='dash';
+function showPage(p){
+  currentPage=p;
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    const active=b.dataset.page===p;
+    b.className='nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm '+(active?'bg-emerald-700 text-white':'text-slate-700 hover:bg-emerald-50');
+  });
+  if(window.innerWidth<1024)document.getElementById('sidebar').classList.add('translate-x-full');
+  render();
+}
 
-function Logo(){
-  return html`<div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center flex-shrink-0">
-    <svg viewBox="0 0 24 24" className="w-7 h-7"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#F59E0B" opacity="0.3"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" fill="none" strokeLinejoin="round"/></svg>
-  </div>`;}
+function render(){
+  const el=document.getElementById('content');
+  const a=analyze();
+  const badge=document.getElementById('alertBadge');
+  const alerts=computeAlerts();
+  if(alerts.length){badge.textContent=alerts.length;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
 
-function StatCard({title,value,icon,tone='primary',sub}){
-  const t={primary:'from-primary to-primary-dark',accent:'from-amber-500 to-amber-600',
-    danger:'from-rose-500 to-rose-600',slate:'from-slate-700 to-slate-800'}[tone];
-  return html`<div className="bg-gradient-to-br ${t} text-white rounded-2xl p-5 relative overflow-hidden">
-    <div className="absolute -left-4 -bottom-4 opacity-15 text-8xl">${icon}</div>
-    <div className="relative">
-      <div className="text-xs font-semibold opacity-90">${title}</div>
-      <div className="text-3xl font-black mt-2">${value}</div>
-      ${sub&&html`<div className="text-xs mt-1 opacity-80">${sub}</div>`}
+  if(currentPage==='dash')el.innerHTML=renderDash(a);
+  if(currentPage==='entry')el.innerHTML=renderEntry();
+  if(currentPage==='log')el.innerHTML=renderLog();
+  if(currentPage==='students')el.innerHTML=renderStudents(a);
+  if(currentPage==='ai')el.innerHTML=renderAI(a);
+  if(currentPage==='alerts')el.innerHTML=renderAlerts(alerts);
+  if(currentPage==='reports')el.innerHTML=renderReports();
+  window.scrollTo(0,0);
+}
+
+function renderDash(a){
+  const recent=DB.behaviors.filter(b=>!b.archived).slice(0,6);
+  return `
+  <div class="space-y-6">
+    <header class="flex items-center justify-between flex-wrap gap-3">
+      <div><h1 class="text-2xl lg:text-3xl font-black text-slate-800">لوحة التحكم</h1>
+      <p class="text-sm text-slate-500 mt-1">نظرة شاملة على السلوك الطلابي (آخر 30 يوماً)</p></div>
+      <button onclick="showPage('entry')" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-5 py-3 rounded-xl">+ تسجيل سلوك</button>
+    </header>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      ${statCard('إجمالي السجلات',a.in30.length,'📈','from-slate-700 to-slate-800',DB.behaviors.length+' سجل كلي')}
+      ${statCard('إيجابية',a.tp,'✅','from-emerald-600 to-emerald-800','تعزيز ودافعية')}
+      ${statCard('مخالفات',a.tn,'⚠️','from-rose-500 to-rose-600','تحتاج متابعة')}
+      ${statCard('طلاب أولوية',a.risk.length,'🎯','from-amber-500 to-amber-600','خطر متوسط أو مرتفع')}
     </div>
-  </div>`;}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-black text-slate-800 mb-4">نسبة السلوك الإيجابي</h3>
+        ${donut(a.tp,a.tn)}
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-black text-slate-800 mb-4">التوزيع حسب الصفوف</h3>
+        ${gradeBars(a.byGrade)}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-black">أحدث السلوكيات</h3>
+          <button onclick="showPage('log')" class="text-xs font-bold text-emerald-700">عرض الكل ←</button>
+        </div>
+        <div class="space-y-2">
+          ${recent.map(b=>{const s=getStudent(b.studentId);const ip=b.type==='positive';
+            return `<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold ${ip?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-600'}">${ip?'✓':'!'}</div>
+              <div class="flex-1 min-w-0"><div class="font-bold text-sm truncate">${s?s.name:'طالب'}</div>
+              <div class="text-xs text-slate-500 truncate">${b.category} · ${b.teacher}</div></div>
+              <div class="text-left"><span class="text-xs font-bold px-2 py-1 rounded ${ip?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-600'}">${(ip?'+':'')+b.points}</span>
+              <div class="text-[10px] text-slate-400 mt-1">${timeAgo(b.createdAt)}</div></div>
+            </div>`;}).join('')}
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-black mb-4">🧠 توصيات ذكية</h3>
+        <div class="space-y-3">
+          ${a.rec.slice(0,3).map(r=>`<div class="text-xs p-3 rounded-xl border-r-4 leading-relaxed ${toneCls(r.lv)}">${r.i} ${r.t}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
 
-function Donut({pos,neg}){
-  const t=pos+neg||1,pct=Math.round(pos/t*100),circ=2*Math.PI*42,dash=pct/100*circ;
-  return html`<div className="flex items-center gap-6">
-    <svg viewBox="0 0 100 100" className="w-32 h-32 -rotate-90">
-      <circle cx="50" cy="50" r="42" stroke="#FEE2E2" strokeWidth="12" fill="none"/>
-      <circle cx="50" cy="50" r="42" stroke="#10B981" strokeWidth="12" fill="none"
-        strokeDasharray="${dash} ${circ}" strokeLinecap="round"/>
+function statCard(t,v,i,grad,sub){
+  return `<div class="bg-gradient-to-br ${grad} text-white rounded-2xl p-4 relative overflow-hidden">
+    <div class="absolute -left-2 -bottom-2 opacity-15 text-7xl">${i}</div>
+    <div class="relative"><div class="text-xs opacity-90 font-semibold">${t}</div>
+    <div class="text-3xl font-black mt-1">${v}</div>
+    ${sub?`<div class="text-xs mt-1 opacity-80">${sub}</div>`:''}</div></div>`;
+}
+
+function donut(pos,neg){
+  const t=pos+neg||1,pct=Math.round(pos/t*100),c=2*Math.PI*42,d=pct/100*c;
+  return `<div class="flex items-center gap-6">
+    <svg viewBox="0 0 100 100" class="w-28 h-28 -rotate-90">
+      <circle cx="50" cy="50" r="42" stroke="#FEE2E2" stroke-width="12" fill="none"/>
+      <circle cx="50" cy="50" r="42" stroke="#10B981" stroke-width="12" fill="none" stroke-dasharray="${d} ${c}" stroke-linecap="round"/>
     </svg>
-    <div>
-      <div className="text-3xl font-black text-primary">${pct}%</div>
-      <div className="text-sm text-slate-600 mt-1">نسبة السلوك الإيجابي</div>
-      <div className="flex items-center gap-3 mt-3 text-xs">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary-light"></span>إيجابي (${pos})</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-rose-400"></span>سلبي (${neg})</span>
-      </div>
-    </div>
-  </div>`;}
+    <div><div class="text-3xl font-black text-emerald-700">${pct}%</div>
+    <div class="text-sm text-slate-600 mt-1">نسبة السلوك الإيجابي</div>
+    <div class="flex gap-3 mt-3 text-xs">
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span>إيجابي (${pos})</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-rose-400"></span>سلبي (${neg})</span>
+    </div></div></div>`;
+}
 
-function GradeBars({data}){
+function gradeBars(data){
   const max=Math.max(...data.map(d=>d.positive+d.negative),1);
-  return html`<div className="space-y-3">
-    ${data.map(d=>{const t=d.positive+d.negative,tp=t/max*100,pp=t?d.positive/t*100:0;
-      return html`<div key=${d.grade} className="flex items-center gap-3">
-        <div className="w-14 text-sm font-bold text-slate-700">الصف ${d.grade}</div>
-        <div className="flex-1 h-6 bg-slate-100 rounded-lg overflow-hidden">
-          <div className="h-full flex" style=${{width:tp+'%'}}>
-            <div className="h-full bg-primary-light" style=${{width:pp+'%'}}></div>
-            <div className="h-full bg-rose-400" style=${{width:(100-pp)+'%'}}></div>
-          </div>
-        </div>
-        <div className="w-16 text-left text-xs font-bold text-slate-500">${t} حالة</div>
-      </div>`;})}
-  </div>`;}
-
-const NAV=[{id:'dash',l:'لوحة التحكم',i:'📊'},{id:'entry',l:'تسجيل سلوك',i:'✍️'},
-{id:'log',l:'سجل السلوكيات',i:'📋'},{id:'students',l:'الطلبة',i:'👥'},
-{id:'ai',l:'الإرشاد الذكي',i:'🧠'},{id:'alerts',l:'التنبيهات',i:'🔔'},{id:'reports',l:'التقارير',i:'📄'}];
-
-function Sidebar({page,setPage,ac}){
-  const [open,setOpen]=useState(false);
-  return html`<>
-    <button onClick=${()=>setOpen(!open)} className="lg:hidden fixed top-4 right-4 z-50 bg-primary text-white p-3 rounded-xl shadow-lg">☰</button>
-    <aside className=${'fixed lg:static top-0 right-0 h-screen w-72 bg-white border-l border-slate-200 z-40 transform transition-transform '+(open?'translate-x-0':'translate-x-full lg:translate-x-0')+' flex flex-col'}>
-      <div className="p-5 border-b border-slate-100 flex items-center gap-3">
-        <${Logo}/>
-        <div><div className="font-black text-primary leading-tight text-sm">مدرسة المسعى</div>
-        <div className="text-xs text-slate-500">للتعليم الأساسي للبنين ٥-٩</div></div>
-      </div>
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        ${NAV.map(it=>html`<button key=${it.id} onClick=${()=>{setPage(it.id);setOpen(false)}}
-          className=${'w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition '+(page===it.id?'bg-primary text-white':'text-slate-700 hover:bg-primary-soft')}>
-          <span className="text-lg">${it.i}</span><span className="flex-1 text-right">${it.l}</span>
-          ${it.id==='alerts'&&ac>0&&html`<span className="bg-danger text-white text-xs font-black rounded-full min-w-[22px] h-5 flex items-center justify-center px-1.5">${ac}</span>`}
-        </button>`)}
-      </nav>
-      <div className="p-4 border-t text-center text-[10px] text-slate-400">منصة إدارة السلوك · v2.0</div>
-    </aside>
-    ${open&&html`<div onClick=${()=>setOpen(false)} className="lg:hidden fixed inset-0 bg-black/40 z-30"></div>`}
-  </>`;}
-
-function Dashboard({students,behaviors,nav}){
-  const a=useMemo(()=>analyze(students,behaviors),[students,behaviors]);
-  const recent=behaviors.filter(b=>!b.archived).slice(0,6);
-  const smap=Object.fromEntries(students.map(s=>[s.id,s]));
-  return html`<div className="space-y-6 fade-in">
-    <header className="flex items-center justify-between flex-wrap gap-3">
-      <div><h1 className="text-2xl lg:text-3xl font-black text-slate-800">لوحة التحكم</h1>
-      <p className="text-sm text-slate-500 mt-1">نظرة شاملة على السلوك الطلابي (آخر 30 يوماً)</p></div>
-      <button onClick=${()=>nav('entry')} className="bg-primary hover:bg-primary-dark text-white font-bold px-5 py-3 rounded-xl">+ تسجيل سلوك</button>
-    </header>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <${StatCard} title="إجمالي السجلات" value=${a.in30.length} icon="📈" tone="slate" sub=${behaviors.length+' سجل كلي'}/>
-      <${StatCard} title="سلوكيات إيجابية" value=${a.tp} icon="✅" tone="primary" sub="تعزيز ودافعية"/>
-      <${StatCard} title="مخالفات لائحية" value=${a.tn} icon="⚠️" tone="danger" sub="تحتاج متابعة"/>
-      <${StatCard} title="طلاب أولوية" value=${a.risk.length} icon="🎯" tone="accent" sub="خطر متوسط أو مرتفع"/>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-black text-slate-800 mb-4">نسبة السلوك الإيجابي</h3>
-        <${Donut} pos=${a.tp} neg=${a.tn}/>
-      </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-black text-slate-800 mb-4">التوزيع حسب الصفوف</h3>
-        <${GradeBars} data=${a.byGrade}/>
-      </div>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black text-slate-800">أحدث السلوكيات</h3>
-          <button onClick=${()=>nav('log')} className="text-xs font-bold text-primary">عرض الكل ←</button>
-        </div>
-        <div className="space-y-2">
-          ${recent.map(b=>{const s=smap[b.studentId],ip=b.type==='positive';
-            return html`<div key=${b.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50">
-              <div className=${'w-10 h-10 rounded-xl flex items-center justify-center font-bold '+(ip?'bg-primary-soft text-primary-dark':'bg-danger-soft text-danger')}>${ip?'✓':'!'}</div>
-              <div className="flex-1 min-w-0"><div className="font-bold text-sm truncate">${s?s.name:'طالب'}</div>
-              <div className="text-xs text-slate-500 truncate">${b.category} · ${b.teacher}</div></div>
-              <div className="text-left"><${Badge} c=${ip?'green':'red'}>${(ip?'+':'')+b.points}<//>
-              <div className="text-[10px] text-slate-400 mt-1">${timeAgo(b.createdAt)}</div></div>
-            </div>`;})}
+  return `<div class="space-y-3">${data.map(d=>{const t=d.positive+d.negative,tp=t/max*100,pp=t?d.positive/t*100:0;
+    return `<div class="flex items-center gap-3">
+      <div class="w-14 text-sm font-bold">الصف ${d.grade}</div>
+      <div class="flex-1 h-6 bg-slate-100 rounded-lg overflow-hidden">
+        <div class="h-full flex" style="width:${tp}%">
+          <div class="h-full bg-emerald-500" style="width:${pp}%"></div>
+          <div class="h-full bg-rose-400" style="width:${100-pp}%"></div>
         </div>
       </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-black text-slate-800 mb-4">🧠 توصيات ذكية</h3>
-        <div className="space-y-3">
-          ${a.rec.slice(0,3).map((r,i)=>html`<div key=${i} className=${'text-xs p-3 rounded-xl border-r-4 leading-relaxed '+(r.lv==='danger'?'bg-danger-soft border-danger text-rose-900':r.lv==='warn'?'bg-accent-soft border-accent text-amber-900':r.lv==='info'?'bg-blue-50 border-blue-500 text-blue-900':'bg-primary-soft border-primary text-primary-dark')}>
-            <span className="ml-1">${r.i}</span>${r.t}</div>`)}
-        </div>
-        <button onClick=${()=>nav('ai')} className="w-full mt-4 text-xs font-bold text-primary hover:bg-primary-soft py-2 rounded-lg">عرض التحليل الكامل ←</button>
-      </div>
-    </div>
-  </div>`;}
+      <div class="w-16 text-left text-xs font-bold text-slate-500">${t} حالة</div>
+    </div>`;}).join('')}</div>`;
+}
 
-function Entry({students,onAdd}){
-  const [type,setType]=useState('negative');
-  const [sid,setSid]=useState('');const [cid,setCid]=useState('');
-  const [desc,setDesc]=useState('');const [teacher,setTeacher]=useState(TEACHERS[0]);
-  const [toast,setToast]=useState(null);
-  const cats=type==='positive'?POS:NEG;
-  const sorted=[...students].sort((a,b)=>a.name.localeCompare(b.name,'ar'));
-  const submit=e=>{
-    e.preventDefault();
-    if(!sid||!cid){setToast({t:'error',m:'يرجى استكمال الحقول'});setTimeout(()=>setToast(null),2500);return;}
-    const c=cats.find(x=>x.id===cid);
-    onAdd({studentId:sid,type,category:c.l,points:type==='positive'?c.p:-c.p,description:desc,teacher});
-    setToast({t:'ok',m:'✓ تم التسجيل'});setTimeout(()=>setToast(null),2500);
-    setSid('');setCid('');setDesc('');
-  };
-  return html`<div className="space-y-6 fade-in max-w-3xl">
-    <header><h1 className="text-2xl lg:text-3xl font-black text-slate-800">تسجيل سلوك طالب</h1>
-    <p className="text-sm text-slate-500 mt-1">نموذج إدخال سريع</p></header>
-    ${toast&&html`<div className=${'p-4 rounded-xl font-bold text-sm '+(toast.t==='ok'?'bg-primary-soft text-primary-dark':'bg-danger-soft text-danger')}>${toast.m}</div>`}
-    <form onSubmit=${submit} className="bg-white rounded-2xl p-6 shadow-sm space-y-5">
+function toneCls(lv){
+  return lv==='danger'?'bg-red-50 border-red-600 text-red-900':
+         lv==='warn'?'bg-amber-50 border-amber-500 text-amber-900':
+         lv==='info'?'bg-blue-50 border-blue-500 text-blue-900':
+         'bg-emerald-50 border-emerald-600 text-emerald-900';
+}
+
+function renderEntry(){
+  return `<div class="max-w-3xl space-y-6">
+    <header><h1 class="text-2xl lg:text-3xl font-black">تسجيل سلوك طالب</h1>
+    <p class="text-sm text-slate-500 mt-1">نموذج إدخال سريع</p></header>
+    <div id="toast" class="hidden p-4 rounded-xl font-bold text-sm"></div>
+    <form id="bform" class="bg-white rounded-2xl p-6 shadow-sm space-y-5" onsubmit="submitBehavior(event)">
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-2">نوع السلوك</label>
-        <div className="grid grid-cols-2 gap-3">
-          <button type="button" onClick=${()=>{setType('positive');setCid('')}} className=${'p-4 rounded-xl font-bold text-sm border-2 transition '+(type==='positive'?'border-primary bg-primary-soft text-primary-dark':'border-slate-200 text-slate-600')}>✅ إيجابي / تعزيز</button>
-          <button type="button" onClick=${()=>{setType('negative');setCid('')}} className=${'p-4 rounded-xl font-bold text-sm border-2 transition '+(type==='negative'?'border-danger bg-danger-soft text-danger':'border-slate-200 text-slate-600')}>⚠️ سلبي / مخالفة</button>
+        <label class="block text-sm font-bold mb-2">نوع السلوك</label>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" id="btnNeg" onclick="setType('negative')" class="p-4 rounded-xl font-bold text-sm border-2 border-red-500 bg-red-50 text-red-600">⚠️ سلبي / مخالفة</button>
+          <button type="button" id="btnPos" onclick="setType('positive')" class="p-4 rounded-xl font-bold text-sm border-2 border-slate-200 text-slate-600">✅ إيجابي / تعزيز</button>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label className="block text-sm font-bold text-slate-700 mb-2">الطالب *</label>
-          <select value=${sid} onChange=${e=>setSid(e.target.value)} className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm bg-white focus:border-primary focus:outline-none">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-sm font-bold mb-2">الطالب *</label>
+          <select id="fStudent" required class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm bg-white">
             <option value="">— اختر الطالب —</option>
-            ${GRADES.map(g=>html`<optgroup key=${g} label=${'الصف '+g}>
-              ${sorted.filter(s=>s.grade===g).map(s=>html`<option key=${s.id} value=${s.id}>${s.name} — ${s.section}</option>`)}
-            </optgroup>`)}
+            ${GRADES.map(g=>`<optgroup label="الصف ${g}">${DB.students.filter(s=>s.grade===g).sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(s=>`<option value="${s.id}">${s.name} — ${s.section}</option>`).join('')}</optgroup>`).join('')}
           </select>
         </div>
-        <div><label className="block text-sm font-bold text-slate-700 mb-2">المعلم المُبلغ *</label>
-          <select value=${teacher} onChange=${e=>setTeacher(e.target.value)} className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm bg-white focus:border-primary focus:outline-none">
-            ${TEACHERS.map(t=>html`<option key=${t} value=${t}>${t}</option>`)}
+        <div><label class="block text-sm font-bold mb-2">المعلم *</label>
+          <select id="fTeacher" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm bg-white">
+            ${TEACHERS.map(t=>`<option>${t}</option>`).join('')}
           </select>
         </div>
       </div>
-      <div><label className="block text-sm font-bold text-slate-700 mb-2">${type==='positive'?'بند التعزيز *':'البند اللائحي *'}</label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          ${cats.map(c=>html`<button type="button" key=${c.id} onClick=${()=>setCid(c.id)}
-            className=${'text-right p-3 rounded-xl text-sm font-bold border-2 transition flex items-center justify-between '+(cid===c.id?(type==='positive'?'border-primary bg-primary-soft':'border-danger bg-danger-soft'):'border-slate-200')}>
-            <span className="truncate">${c.l}</span>
-            <span className=${'text-xs font-black px-2 py-0.5 rounded-md mr-2 text-white '+(type==='positive'?'bg-primary':'bg-danger')}>${(type==='positive'?'+':'-')+c.p}</span>
-          </button>`)}
-        </div>
+      <div><label class="block text-sm font-bold mb-2">البند *</label>
+        <div id="catsList" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+        <input type="hidden" id="fCat" required>
       </div>
-      <div><label className="block text-sm font-bold text-slate-700 mb-2">ملاحظات</label>
-        <textarea rows="3" value=${desc} onChange=${e=>setDesc(e.target.value)} placeholder="وصف مختصر..." className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm focus:border-primary focus:outline-none resize-none"></textarea>
+      <div><label class="block text-sm font-bold mb-2">ملاحظات</label>
+        <textarea id="fDesc" rows="3" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm" placeholder="وصف مختصر..."></textarea>
       </div>
-      <div className="flex gap-3">
-        <button type="submit" className="flex-1 bg-primary hover:bg-primary-dark text-white font-black py-3.5 rounded-xl">💾 حفظ التسجيل</button>
-        <button type="button" onClick=${()=>{setSid('');setCid('');setDesc('')}} className="px-6 bg-slate-100 text-slate-700 font-bold py-3.5 rounded-xl">مسح</button>
-      </div>
+      <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black py-3.5 rounded-xl">💾 حفظ التسجيل</button>
     </form>
-  </div>`;}
+  </div>`;
+}
 
-function Log({students,behaviors,onArch,onDel}){
-  const [q,setQ]=useState(''),[gf,setGf]=useState('all'),[tf,setTf]=useState('all');
-  const [arch,setArch]=useState(false),[page,setPage]=useState(1);
+let currentType='negative';
+function setType(t){
+  currentType=t;
+  const bn=document.getElementById('btnNeg'),bp=document.getElementById('btnPos');
+  if(t==='negative'){
+    bn.className='p-4 rounded-xl font-bold text-sm border-2 border-red-500 bg-red-50 text-red-600';
+    bp.className='p-4 rounded-xl font-bold text-sm border-2 border-slate-200 text-slate-600';
+  }else{
+    bp.className='p-4 rounded-xl font-bold text-sm border-2 border-emerald-600 bg-emerald-50 text-emerald-700';
+    bn.className='p-4 rounded-xl font-bold text-sm border-2 border-slate-200 text-slate-600';
+  }
+  renderCats();
+}
+function renderCats(){
+  const cats=currentType==='positive'?POS:NEG;
+  document.getElementById('catsList').innerHTML=cats.map(c=>{
+    const isPos=currentType==='positive';
+    return `<button type="button" onclick="pickCat('${c.id}','${c.l}',${c.p})" data-cid="${c.id}" class="cat-btn text-right p-3 rounded-xl text-sm font-bold border-2 border-slate-200 hover:border-slate-300 flex items-center justify-between">
+      <span class="truncate">${c.l}</span>
+      <span class="text-xs font-black px-2 py-0.5 rounded-md mr-2 text-white ${isPos?'bg-emerald-600':'bg-red-600'}">${isPos?'+':'-'}${c.p}</span>
+    </button>`;}).join('');
+}
+function pickCat(id,label,p){
+  document.getElementById('fCat').value=id+'|'+label+'|'+p;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.className='cat-btn text-right p-3 rounded-xl text-sm font-bold border-2 border-slate-200 hover:border-slate-300 flex items-center justify-between');
+  const sel=document.querySelector(`.cat-btn[data-cid="${id}"]`);
+  sel.className='cat-btn text-right p-3 rounded-xl text-sm font-bold border-2 '+(currentType==='positive'?'border-emerald-600 bg-emerald-50':'border-red-500 bg-red-50')+' flex items-center justify-between';
+}
+function submitBehavior(e){
+  e.preventDefault();
+  const sid=document.getElementById('fStudent').value;
+  const cat=document.getElementById('fCat').value;
+  if(!sid||!cat){showToast('يرجى استكمال الحقول','error');return;}
+  const[catId,catLabel,catP]=cat.split('|');
+  const teacher=document.getElementById('fTeacher').value;
+  const desc=document.getElementById('fDesc').value;
+  const isPos=currentType==='positive';
+  DB.behaviors.unshift({id:'B'+Date.now(),studentId:sid,type:currentType,category:catLabel,points:isPos?+catP:-catP,description:desc,teacher,createdAt:Date.now(),archived:false});
+  save();
+  showToast('✓ تم تسجيل السلوك بنجاح','ok');
+  document.getElementById('fStudent').value='';
+  document.getElementById('fCat').value='';
+  document.getElementById('fDesc').value='';
+  renderCats();
+}
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='p-4 rounded-xl font-bold text-sm '+(type==='ok'?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-600');
+  setTimeout(()=>t.classList.add('hidden'),2500);
+}
+
+let logQ='',logGF='all',logTF='all',logArch=false,logPage=1;
+function renderLog(){
   const per=15;
-  const smap=useMemo(()=>Object.fromEntries(students.map(s=>[s.id,s])),[students]);
-  const filtered=useMemo(()=>behaviors.filter(b=>{
-    if(!arch&&b.archived)return false;if(arch&&!b.archived)return false;
-    const s=smap[b.studentId];if(!s)return false;
-    if(gf!=='all'&&s.grade!==+gf)return false;if(tf!=='all'&&b.type!==tf)return false;
-    if(q){const x=q.trim();return s.name.includes(x)||b.category.includes(x)||b.teacher.includes(x);}
-    return true;}),[behaviors,gf,tf,q,arch,smap]);
+  let filtered=DB.behaviors.filter(b=>{
+    if(!logArch&&b.archived)return false;
+    if(logArch&&!b.archived)return false;
+    const s=getStudent(b.studentId);if(!s)return false;
+    if(logGF!=='all'&&s.grade!==+logGF)return false;
+    if(logTF!=='all'&&b.type!==logTF)return false;
+    if(logQ){const x=logQ.trim();if(!(s.name.includes(x)||b.category.includes(x)||b.teacher.includes(x)))return false;}
+    return true;});
   const tp=Math.max(1,Math.ceil(filtered.length/per));
-  const cur=filtered.slice((page-1)*per,page*per);
-  useEffect(()=>{setPage(1)},[q,gf,tf,arch]);
-  const csv=()=>{
-    const rows=[['التاريخ','الطالب','الصف','النوع','البند','النقاط','المعلم']];
-    filtered.forEach(b=>{const s=smap[b.studentId];
-      rows.push([fmtDate(b.createdAt),s?.name||'',s?.grade||'',b.type==='positive'?'إيجابي':'سلبي',b.category,b.points,b.teacher]);});
-    const c='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
-    const blob=new Blob([c],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);a.download='behavior_log.csv';a.click();
-  };
-  return html`<div className="space-y-6 fade-in">
-    <header className="flex items-center justify-between flex-wrap gap-3">
-      <div><h1 className="text-2xl lg:text-3xl font-black text-slate-800">سجل السلوكيات</h1>
-      <p className="text-sm text-slate-500 mt-1">${filtered.length} سجل</p></div>
-      <div className="flex gap-2">
-        <button onClick=${csv} className="bg-white border-2 border-slate-200 hover:border-primary hover:text-primary font-bold px-4 py-2.5 rounded-xl text-sm">📥 CSV</button>
-        <button onClick=${()=>setArch(!arch)} className=${'font-bold px-4 py-2.5 rounded-xl text-sm '+(arch?'bg-accent text-white':'bg-white border-2 border-slate-200 text-slate-700')}>${arch?'📂 النشطة':'📦 الأرشيف'}</button>
+  if(logPage>tp)logPage=tp;
+  const cur=filtered.slice((logPage-1)*per,logPage*per);
+  return `<div class="space-y-6">
+    <header class="flex items-center justify-between flex-wrap gap-3">
+      <div><h1 class="text-2xl lg:text-3xl font-black">سجل السلوكيات</h1>
+      <p class="text-sm text-slate-500 mt-1">${filtered.length} سجل</p></div>
+      <div class="flex gap-2">
+        <button onclick="exportCSV()" class="bg-white border-2 border-slate-200 font-bold px-4 py-2.5 rounded-xl text-sm">📥 CSV</button>
+        <button onclick="toggleArch()" class="font-bold px-4 py-2.5 rounded-xl text-sm ${logArch?'bg-amber-500 text-white':'bg-white border-2 border-slate-200'}">${logArch?'📂 النشطة':'📦 الأرشيف'}</button>
       </div>
     </header>
-    <div className="bg-white rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-3">
-      <input value=${q} onChange=${e=>setQ(e.target.value)} placeholder="🔍 بحث..." className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-primary focus:outline-none"/>
-      <select value=${gf} onChange=${e=>setGf(e.target.value)} className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold bg-white focus:border-primary focus:outline-none">
-        <option value="all">جميع الصفوف</option>${GRADES.map(g=>html`<option key=${g} value=${g}>الصف ${g}</option>`)}
+    <div class="bg-white rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-3">
+      <input value="${logQ}" oninput="logQ=this.value;logPage=1;render()" placeholder="🔍 بحث..." class="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm"/>
+      <select onchange="logGF=this.value;logPage=1;render()" class="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold bg-white">
+        <option value="all">جميع الصفوف</option>${GRADES.map(g=>`<option value="${g}" ${logGF==g?'selected':''}>الصف ${g}</option>`).join('')}
       </select>
-      <select value=${tf} onChange=${e=>setTf(e.target.value)} className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold bg-white focus:border-primary focus:outline-none">
-        <option value="all">جميع الأنواع</option><option value="positive">إيجابي</option><option value="negative">سلبي</option>
-      </select>
-    </div>
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b"><tr className="text-right">
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">التاريخ</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">الطالب</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">الصف</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">النوع</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">البند</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">النقاط</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">المعلم</th>
-            <th className="px-4 py-3 font-black text-slate-700 text-xs">إجراءات</th>
-          </tr></thead>
-          <tbody>
-            ${cur.map(b=>{const s=smap[b.studentId],ip=b.type==='positive';
-              return html`<tr key=${b.id} className="border-b hover:bg-slate-50">
-                <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">${fmtDate(b.createdAt)}</td>
-                <td className="px-4 py-3 font-bold whitespace-nowrap">${s?.name}</td>
-                <td className="px-4 py-3 text-xs"><${Badge}>${s?.grade} / ${s?.section}<//></td>
-                <td className="px-4 py-3"><${Badge} c=${ip?'green':'red'}>${ip?'إيجابي':'سلبي'}<//></td>
-                <td className="px-4 py-3 text-xs max-w-[220px] truncate">${b.category}</td>
-                <td className="px-4 py-3"><span className=${'font-black '+(ip?'text-primary':'text-danger')}>${(ip?'+':'')+b.points}</span></td>
-                <td className="px-4 py-3 text-xs whitespace-nowrap">${b.teacher}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1">
-                    <button onClick=${()=>onArch(b.id)} title="أرشفة" className="p-1.5 hover:bg-amber-100 rounded-lg">${b.archived?'♻️':'📦'}</button>
-                    <button onClick=${()=>{if(confirm('حذف؟'))onDel(b.id)}} title="حذف" className="p-1.5 hover:bg-danger-soft rounded-lg">🗑️</button>
-                  </div>
-                </td>
-              </tr>`;})}
-            ${cur.length===0&&html`<tr><td colSpan="8" className="text-center py-12 text-slate-400">لا توجد سجلات</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-      ${tp>1&&html`<div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
-        <div className="text-xs text-slate-500">صفحة ${page} من ${tp}</div>
-        <div className="flex gap-1">
-          <button disabled=${page===1} onClick=${()=>setPage(p=>p-1)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border disabled:opacity-40">السابق</button>
-          <button disabled=${page===tp} onClick=${()=>setPage(p=>p+1)} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border disabled:opacity-40">التالي</button>
-        </div>
-      </div>`}
-    </div>
-  </div>`;}
-
-function Students({students,behaviors}){
-  const [q,setQ]=useState(''),[gf,setGf]=useState('all'),[sel,setSel]=useState(null);
-  const stats=useMemo(()=>{const m={};students.forEach(s=>m[s.id]={pos:0,neg:0,total:0});
-    behaviors.filter(b=>!b.archived).forEach(b=>{if(m[b.studentId]){m[b.studentId].total+=b.points;
-      if(b.type==='positive')m[b.studentId].pos++;else m[b.studentId].neg++;}});return m;},[students,behaviors]);
-  const filtered=students.filter(s=>{
-    if(gf!=='all'&&s.grade!==+gf)return false;if(q&&!s.name.includes(q))return false;return true;});
-  const selB=sel?behaviors.filter(b=>b.studentId===sel.id&&!b.archived).slice(0,30):[];
-  return html`<div className="space-y-6 fade-in">
-    <header><h1 className="text-2xl lg:text-3xl font-black text-slate-800">سجل الطلبة</h1>
-    <p className="text-sm text-slate-500 mt-1">${students.length} طالباً</p></header>
-    <div className="bg-white rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-3">
-      <input value=${q} onChange=${e=>setQ(e.target.value)} placeholder="🔍 بحث باسم الطالب..." className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-primary focus:outline-none"/>
-      <select value=${gf} onChange=${e=>setGf(e.target.value)} className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold bg-white focus:border-primary focus:outline-none">
-        <option value="all">جميع الصفوف</option>${GRADES.map(g=>html`<option key=${g} value=${g}>الصف ${g}</option>`)}
+      <select onchange="logTF=this.value;logPage=1;render()" class="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold bg-white">
+        <option value="all">جميع الأنواع</option>
+        <option value="positive" ${logTF==='positive'?'selected':''}>إيجابي</option>
+        <option value="negative" ${logTF==='negative'?'selected':''}>سلبي</option>
       </select>
     </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      ${filtered.map(s=>{const st=stats[s.id]||{pos:0,neg:0,total:0};
-        const risk=st.neg>=4?'high':st.neg>=2?'medium':'low';
-        const rl={high:'أولوية عالية',medium:'متابعة',low:'منتظم'}[risk];
-        const rc={high:'red',medium:'amber',low:'green'}[risk];
-        return html`<button key=${s.id} onClick=${()=>setSel(s)} className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition text-right">
-          <div className="flex items-start justify-between gap-2">
-            <div className="w-12 h-12 rounded-xl bg-primary-soft flex items-center justify-center font-black text-primary-dark text-lg">${s.name.charAt(0)}</div>
-            <${Badge} c=${rc}>${rl}<//>
-          </div>
-          <div className="font-bold text-sm text-slate-800 mt-3 leading-tight">${s.name}</div>
-          <div className="text-xs text-slate-500 mt-1">الصف ${s.grade} / ${s.section}</div>
-          <div className="flex items-center gap-2 mt-3 text-xs">
-            <span className="bg-primary-soft text-primary-dark font-bold px-2 py-0.5 rounded-md">+${st.pos}</span>
-            <span className="bg-danger-soft text-danger font-bold px-2 py-0.5 rounded-md">-${st.neg}</span>
-            <span className="text-slate-400 mr-auto font-bold">الرصيد: <span className=${st.total>=0?'text-primary':'text-danger'}>${st.total}</span></span>
-          </div>
-        </button>`;})}
-      ${filtered.length===0&&html`<div className="col-span-full text-center py-12 text-slate-400 bg-white rounded-2xl">لا توجد نتائج</div>`}
-    </div>
-    ${sel&&html`<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick=${()=>setSel(null)}>
-      <div onClick=${e=>e.stopPropagation()} className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <div className="p-6 border-b flex items-start justify-between">
-          <div><h3 className="font-black text-xl">${sel.name}</h3>
-          <p className="text-sm text-slate-500 mt-1">الصف ${sel.grade} / ${sel.section} · ولي الأمر: ${sel.guardian}</p>
-          <p className="text-xs text-slate-400 mt-1">📞 ${sel.phone}</p></div>
-          <button onClick=${()=>setSel(null)} className="p-2 hover:bg-slate-100 rounded-lg">✕</button>
-        </div>
-        <div className="p-6 overflow-y-auto">
-          <h4 className="font-bold text-sm text-slate-700 mb-3">السجل (${selB.length})</h4>
-          <div className="space-y-2">
-            ${selB.map(b=>html`<div key=${b.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-              <div className=${'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white '+(b.type==='positive'?'bg-primary':'bg-danger')}>${b.type==='positive'?'+':'-'}</div>
-              <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">${b.category}</div>
-              <div className="text-[10px] text-slate-500">${fmtDate(b.createdAt)} · ${b.teacher}</div></div>
-              <${Badge} c=${b.type==='positive'?'green':'red'}>${b.points>0?'+':''}${b.points}<//>
-            </div>`)}
-            ${selB.length===0&&html`<div className="text-center text-slate-400 py-8 text-sm">لا توجد سجلات</div>`}
-          </div>
-        </div>
-      </div>
-    </div>`}
-  </div>`;}
-
-function AI({students,behaviors}){
-  const a=useMemo(()=>analyze(students,behaviors),[students,behaviors]);
-  const [rf,setRf]=useState(false);
-  return html`<div className="space-y-6 fade-in">
-    <header className="flex items-center justify-between flex-wrap gap-3">
-      <div><h1 className="text-2xl lg:text-3xl font-black text-slate-800">🧠 الإرشاد التربوي الذكي</h1>
-      <p className="text-sm text-slate-500 mt-1">تحليل تلقائي مع توصيات مقترحة</p></div>
-      <button onClick=${()=>{setRf(true);setTimeout(()=>setRf(false),900)}} className="bg-primary hover:bg-primary-dark text-white font-bold px-5 py-2.5 rounded-xl">${rf?'⏳ جاري التحليل...':'🔄 تحديث التحليل'}</button>
-    </header>
-    <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl p-6">
-      <div className="text-xs font-bold opacity-80">ملخص تنفيذي</div>
-      <div className="text-lg font-black mt-2 leading-relaxed">
-        تم تحليل ${a.in30.length} سجل خلال 30 يوماً. ${a.risk.length>0?'يوجد '+a.risk.length+' طالباً يحتاجون متابعة.':'جميع الطلبة في المستوى الطبيعي.'}
-      </div>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-black mb-4">📌 التوصيات التربوية</h3>
-        <div className="space-y-3">
-          ${a.rec.map((r,i)=>html`<div key=${i} className=${'p-4 rounded-xl border-r-4 text-sm leading-relaxed '+(r.lv==='danger'?'bg-danger-soft border-danger text-rose-900':r.lv==='warn'?'bg-accent-soft border-accent text-amber-900':r.lv==='info'?'bg-blue-50 border-blue-500 text-blue-900':'bg-primary-soft border-primary text-primary-dark')}>
-            <div className="font-bold mb-1">${r.i} توصية ${i+1}</div>${r.t}</div>`)}
-        </div>
-      </div>
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-black mb-4">🔁 الأنماط المتكررة</h3>
-        ${a.patterns.length===0?html`<div className="text-center text-slate-400 py-8 text-sm">لا أنماط</div>`:
-        html`<div className="space-y-3">
-          ${a.patterns.map((p,i)=>{const max=a.patterns[0].count,pct=p.count/max*100;
-            return html`<div key=${i}>
-              <div className="flex justify-between text-xs mb-1.5"><span className="font-bold truncate">${p.cat}</span>
-              <span className="text-danger font-black">${p.count}</span></div>
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-l from-rose-400 to-danger rounded-full" style=${{width:pct+'%'}}></div>
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div class="overflow-x-auto"><table class="w-full text-sm">
+        <thead class="bg-slate-50 border-b"><tr class="text-right">
+          <th class="px-4 py-3 font-black text-xs">التاريخ</th>
+          <th class="px-4 py-3 font-black text-xs">الطالب</th>
+          <th class="px-4 py-3 font-black text-xs">الصف</th>
+          <th class="px-4 py-3 font-black text-xs">النوع</th>
+          <th class="px-4 py-3 font-black text-xs">البند</th>
+          <th class="px-4 py-3 font-black text-xs">النقاط</th>
+          <th class="px-4 py-3 font-black text-xs">المعلم</th>
+          <th class="px-4 py-3 font-black text-xs">إجراءات</th>
+        </tr></thead>
+        <tbody>${cur.map(b=>{const s=getStudent(b.studentId),ip=b.type==='positive';
+          return `<tr class="border-b hover:bg-slate-50">
+            <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">${fmtDate(b.createdAt)}</td>
+            <td class="px-4 py-3 font-bold whitespace-nowrap">${s?s.name:''}</td>
+            <td class="px-4 py-3 text-xs">${s?s.grade+' / '+s.section:''}</td>
+            <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-1 rounded ${ip?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-600'}">${ip?'إيجابي':'سلبي'}</span></td>
+            <td class="px-4 py-3 text-xs max-w-[220px] truncate">${b.category}</td>
+            <td class="px-4 py-3"><span class="font-black ${ip?'text-emerald-700':'text-red-600'}">${(ip?'+':'')+b.points}</span></td>
+            <td class="px-4 py-3 text-xs whitespace-nowrap">${b.teacher}</td>
+            <td class="px-4 py-3">
+              <div class="flex gap-1">
+                <button onclick="toggleArch1('${b.id}')" class="p-1.5 hover:bg-amber-100 rounded-lg">${b.archived?'♻️':'📦'}</button>
+                <button onclick="delBehavior('${b.id}')" class="p-1.5 hover:bg-red-50 rounded-lg">🗑️</button>
               </div>
-            </div>`;})}
-        </div>`}
+            </td>
+          </tr>`;}).join('')}
+          ${cur.length===0?'<tr><td colspan="8" class="text-center py-12 text-slate-400">لا توجد سجلات</td></tr>':''}
+        </tbody>
+      </table></div>
+      ${tp>1?`<div class="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
+        <div class="text-xs text-slate-500">صفحة ${logPage} من ${tp}</div>
+        <div class="flex gap-1">
+          <button ${logPage===1?'disabled':''} onclick="logPage--;render()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border disabled:opacity-40">السابق</button>
+          <button ${logPage===tp?'disabled':''} onclick="logPage++;render()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border disabled:opacity-40">التالي</button>
+        </div></div>`:''}
+    </div>
+  </div>`;
+}
+function toggleArch(){logArch=!logArch;logPage=1;render();}
+function toggleArch1(id){const b=DB.behaviors.find(x=>x.id===id);if(b){b.archived=!b.archived;save();render();}}
+function delBehavior(id){if(confirm('حذف السجل؟')){DB.behaviors=DB.behaviors.filter(b=>b.id!==id);save();render();}}
+function exportCSV(){
+  const rows=[['التاريخ','الطالب','الصف','النوع','البند','النقاط','المعلم']];
+  DB.behaviors.forEach(b=>{const s=getStudent(b.studentId);
+    rows.push([fmtDate(b.createdAt),s?s.name:'',s?s.grade:'',b.type==='positive'?'إيجابي':'سلبي',b.category,b.points,b.teacher]);});
+  const csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='behavior_log.csv';a.click();
+}
+
+function renderStudents(){
+  const stats={};DB.students.forEach(s=>stats[s.id]={pos:0,neg:0,total:0});
+  DB.behaviors.filter(b=>!b.archived).forEach(b=>{if(stats[b.studentId]){stats[b.studentId].total+=b.points;if(b.type==='positive')stats[b.studentId].pos++;else stats[b.studentId].neg++;}});
+  return `<div class="space-y-6">
+    <header><h1 class="text-2xl lg:text-3xl font-black">سجل الطلبة</h1>
+    <p class="text-sm text-slate-500 mt-1">${DB.students.length} طالباً</p></header>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      ${DB.students.map(s=>{const st=stats[s.id];const risk=st.neg>=4?'high':st.neg>=2?'medium':'low';
+        const rl={high:'أولوية عالية',medium:'متابعة',low:'منتظم'}[risk];
+        const rc={high:'bg-red-50 text-red-600',medium:'bg-amber-50 text-amber-800',low:'bg-emerald-50 text-emerald-700'}[risk];
+        return `<button onclick="openStudent('${s.id}')" class="bg-white rounded-2xl p-4 shadow-sm text-right hover:shadow-md">
+          <div class="flex items-start justify-between gap-2">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center font-black text-emerald-700 text-lg">${s.name.charAt(0)}</div>
+            <span class="text-xs font-bold px-2 py-1 rounded ${rc}">${rl}</span>
+          </div>
+          <div class="font-bold text-sm mt-3 leading-tight">${s.name}</div>
+          <div class="text-xs text-slate-500 mt-1">الصف ${s.grade} / ${s.section}</div>
+          <div class="flex items-center gap-2 mt-3 text-xs">
+            <span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded">+${st.pos}</span>
+            <span class="bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded">-${st.neg}</span>
+            <span class="text-slate-400 mr-auto font-bold">رصيد: <span class="${st.total>=0?'text-emerald-700':'text-red-600'}">${st.total}</span></span>
+          </div>
+        </button>`;}).join('')}
+    </div>
+  </div>`;
+}
+function openStudent(id){
+  const s=getStudent(id);
+  const bs=DB.behaviors.filter(b=>b.studentId===id&&!b.archived).slice(0,20);
+  const modal=document.createElement('div');
+  modal.className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  modal.innerHTML=`<div onclick="event.stopPropagation()" class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="p-5 border-b flex justify-between items-start">
+      <div><div class="font-black text-lg">${s.name}</div>
+      <div class="text-sm text-slate-500 mt-1">الصف ${s.grade}/${s.section} · ${s.guardian}</div>
+      <div class="text-xs text-slate-400 mt-1">📞 ${s.phone}</div></div>
+      <button onclick="this.closest('.fixed').remove()" class="p-2 hover:bg-slate-100 rounded-lg">✕</button>
+    </div>
+    <div class="p-5 overflow-y-auto">
+      <h4 class="font-bold text-sm mb-3">السجل (${bs.length})</h4>
+      <div class="space-y-2">
+        ${bs.map(b=>{const ip=b.type==='positive';
+          return `<div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white ${ip?'bg-emerald-600':'bg-red-600'}">${ip?'+':'-'}</div>
+            <div class="flex-1 min-w-0"><div class="text-xs font-bold truncate">${b.category}</div>
+            <div class="text-[10px] text-slate-500">${fmtDate(b.createdAt)} · ${b.teacher}</div></div>
+            <span class="text-xs font-bold px-2 py-1 rounded ${ip?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-600'}">${b.points>0?'+':''}${b.points}</span>
+          </div>`;}).join('')}
+        ${bs.length===0?'<div class="text-center text-slate-400 py-8 text-sm">لا توجد سجلات</div>':''}
       </div>
     </div>
-    <div className="bg-white rounded-2xl p-6 shadow-sm">
-      <h3 className="font-black mb-4">🎯 الطلبة ذوو الأولوية</h3>
-      ${a.risk.length===0?html`<div className="text-center text-primary py-8 font-bold">🟢 لا يوجد طلبة في مستوى خطر</div>`:
-      html`<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        ${a.risk.slice(0,10).map(s=>html`<div key=${s.id} className="p-4 rounded-xl border-2 border-slate-100 flex items-center gap-3">
-          <div className=${'w-12 h-12 rounded-xl flex items-center justify-center font-black text-white '+(s.risk==='high'?'bg-danger':'bg-accent')}>!</div>
-          <div className="flex-1 min-w-0"><div className="font-bold text-sm truncate">${s.name}</div>
-          <div className="text-xs text-slate-500">الصف ${s.grade} / ${s.section}</div>
-          <div className="text-xs mt-1"><span className="text-danger font-bold">${s.neg} مخالفة</span>
-          <span className="text-slate-400 mx-1">·</span><span className="text-primary font-bold">${s.pos} تعزيز</span></div></div>
-          <${Badge} c=${s.risk==='high'?'red':'amber'}>${s.risk==='high'?'خطر مرتفع':'متابعة'}<//>
-        </div>`)}
-      </div>`}
-    </div>
-  </div>`;}
+  </div>`;
+  document.body.appendChild(modal);
+}
 
-function Alerts({students,behaviors,resolved,onResolve}){
-  const smap=useMemo(()=>Object.fromEntries(students.map(s=>[s.id,s])),[students]);
-  const alerts=useMemo(()=>{
-    const list=[],now=Date.now();
-    const in30=behaviors.filter(b=>!b.archived&&now-b.createdAt<=30*864e5);
-    const bs={};in30.forEach(b=>{if(!bs[b.studentId])bs[b.studentId]={neg:0,pos:0};
-      if(b.type==='negative')bs[b.studentId].neg++;else bs[b.studentId].pos++;});
-    Object.entries(bs).forEach(([sid,s])=>{const st=smap[sid];if(!st)return;
-      if(s.neg>=3)list.push({id:sid+'_risk',sid,sev:s.neg>=5?'high':'medium',ti:'استدعاء ولي أمر',
-        m:st.name+' (الصف '+st.grade+') لديه '+s.neg+' مخالفات خلال 30 يوماً. استدعاء ولي الأمر.'});
-      if(s.neg>s.pos*2&&s.neg>=2)list.push({id:sid+'_trend',sid,sev:'medium',ti:'تراجع في السلوك الإيجابي',
-        m:st.name+' يسجل '+s.neg+' مخالفة مقابل '+s.pos+' تعزيز. تدخل إرشادي.'});
-    });
-    return list.filter(a=>!resolved.includes(a.id));
-  },[behaviors,students,resolved,smap]);
-  return html`<div className="space-y-6 fade-in">
-    <header><h1 className="text-2xl lg:text-3xl font-black text-slate-800">🔔 التنبيهات التلقائية</h1>
-    <p className="text-sm text-slate-500 mt-1">${alerts.length} تنبيه نشط</p></header>
-    ${alerts.length===0?html`<div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-      <div className="text-5xl mb-3">✅</div>
-      <div className="font-black text-primary text-lg">لا توجد تنبيهات نشطة</div>
-      <div className="text-sm text-slate-500 mt-1">جميع الحالات تحت السيطرة</div>
+function renderAI(a){
+  return `<div class="space-y-6">
+    <header><h1 class="text-2xl lg:text-3xl font-black">🧠 الإرشاد التربوي الذكي</h1>
+    <p class="text-sm text-slate-500 mt-1">تحليل تلقائي مع توصيات مقترحة</p></header>
+    <div class="bg-gradient-to-br from-emerald-700 to-emerald-900 text-white rounded-2xl p-6">
+      <div class="text-xs font-bold opacity-80">ملخص تنفيذي</div>
+      <div class="text-lg font-black mt-2 leading-relaxed">تم تحليل ${a.in30.length} سجل خلال 30 يوماً. ${a.risk.length>0?'يوجد '+a.risk.length+' طالباً يحتاجون متابعة.':'جميع الطلبة في المستوى الطبيعي.'}</div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-black mb-4">📌 التوصيات التربوية</h3>
+        <div class="space-y-3">${a.rec.map((r,i)=>`<div class="p-4 rounded-xl border-r-4 text-sm leading-relaxed ${toneCls(r.lv)}"><div class="font-bold mb-1">${r.i} توصية ${i+1}</div>${r.t}</div>`).join('')}</div>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-black mb-4">🔁 الأنماط المتكررة</h3>
+        ${a.patterns.length===0?'<div class="text-center text-slate-400 py-8 text-sm">لا أنماط</div>':
+        `<div class="space-y-3">${a.patterns.map(p=>{const max=a.patterns[0].count,pct=p.count/max*100;
+          return `<div><div class="flex justify-between text-xs mb-1.5"><span class="font-bold truncate">${p.cat}</span><span class="text-red-600 font-black">${p.count}</span></div>
+          <div class="h-3 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-l from-rose-400 to-red-600 rounded-full" style="width:${pct}%"></div></div></div>`;}).join('')}</div>`}
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl p-6 shadow-sm">
+      <h3 class="font-black mb-4">🎯 الطلبة ذوو الأولوية</h3>
+      ${a.risk.length===0?'<div class="text-center text-emerald-700 py-8 font-bold">🟢 لا يوجد طلبة في مستوى خطر</div>':
+      `<div class="grid grid-cols-1 md:grid-cols-2 gap-3">${a.risk.slice(0,10).map(s=>`
+        <div class="p-4 rounded-xl border-2 border-slate-100 flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center font-black text-white ${s.risk==='high'?'bg-red-600':'bg-amber-500'}">!</div>
+          <div class="flex-1 min-w-0"><div class="font-bold text-sm truncate">${s.name}</div>
+          <div class="text-xs text-slate-500">الصف ${s.grade}/${s.section}</div>
+          <div class="text-xs mt-1"><span class="text-red-600 font-bold">${s.neg} مخالفة</span> · <span class="text-emerald-700 font-bold">${s.pos} تعزيز</span></div></div>
+          <span class="text-xs font-bold px-2 py-1 rounded ${s.risk==='high'?'bg-red-50 text-red-600':'bg-amber-50 text-amber-800'}">${s.risk==='high'?'خطر مرتفع':'متابعة'}</span>
+        </div>`).join('')}</div>`}
+    </div>
+  </div>`;
+}
+
+function computeAlerts(){
+  const now=Date.now();
+  const in30=DB.behaviors.filter(b=>!b.archived&&now-b.createdAt<=30*864e5);
+  const bs={};in30.forEach(b=>{if(!bs[b.studentId])bs[b.studentId]={neg:0,pos:0};
+    if(b.type==='negative')bs[b.studentId].neg++;else bs[b.studentId].pos++;});
+  const list=[];
+  Object.entries(bs).forEach(([sid,s])=>{const st=getStudent(sid);if(!st)return;
+    if(s.neg>=3)list.push({id:sid+'_risk',sev:s.neg>=5?'high':'medium',ti:'استدعاء ولي أمر',m:st.name+' (الصف '+st.grade+') لديه '+s.neg+' مخالفات خلال 30 يوماً.'});
+    if(s.neg>s.pos*2&&s.neg>=2)list.push({id:sid+'_trend',sev:'medium',ti:'تراجع في السلوك الإيجابي',m:st.name+' يسجل '+s.neg+' مخالفة مقابل '+s.pos+' تعزيز.'});
+  });
+  return list;
+}
+let resolvedAlerts=[];
+function renderAlerts(alerts){
+  const active=alerts.filter(a=>!resolvedAlerts.includes(a.id));
+  return `<div class="space-y-6">
+    <header><h1 class="text-2xl lg:text-3xl font-black">🔔 التنبيهات التلقائية</h1>
+    <p class="text-sm text-slate-500 mt-1">${active.length} تنبيه نشط</p></header>
+    ${active.length===0?`<div class="bg-white rounded-2xl p-12 text-center shadow-sm">
+      <div class="text-5xl mb-3">✅</div>
+      <div class="font-black text-emerald-700 text-lg">لا توجد تنبيهات نشطة</div>
     </div>`:
-    html`<div className="space-y-3">
-      ${alerts.map(a=>html`<div key=${a.id} className=${'bg-white rounded-2xl p-5 shadow-sm border-r-4 '+(a.sev==='high'?'border-danger':'border-accent')}>
-        <div className="flex items-start gap-4">
-          <div className=${'w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 '+(a.sev==='high'?'bg-danger-soft':'bg-accent-soft')}>${a.sev==='high'?'🚨':'⚠️'}</div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-black text-slate-800">${a.ti}</span>
-              <${Badge} c=${a.sev==='high'?'red':'amber'}>${a.sev==='high'?'عاجل':'متوسط'}<//>
+    `<div class="space-y-3">${active.map(a=>`
+      <div class="bg-white rounded-2xl p-5 shadow-sm border-r-4 ${a.sev==='high'?'border-red-600':'border-amber-500'}">
+        <div class="flex items-start gap-4">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${a.sev==='high'?'bg-red-50':'bg-amber-50'}">${a.sev==='high'?'🚨':'⚠️'}</div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-black">${a.ti}</span>
+              <span class="text-xs font-bold px-2 py-1 rounded ${a.sev==='high'?'bg-red-50 text-red-600':'bg-amber-50 text-amber-800'}">${a.sev==='high'?'عاجل':'متوسط'}</span>
             </div>
-            <p className="text-sm text-slate-600 mt-2 leading-relaxed">${a.m}</p>
+            <p class="text-sm text-slate-600 mt-2 leading-relaxed">${a.m}</p>
           </div>
-          <button onClick=${()=>onResolve(a.id)} className="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl text-xs flex-shrink-0">✓ تمت المعالجة</button>
+          <button onclick="resolveAlert('${a.id}')" class="bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex-shrink-0">✓ تمت المعالجة</button>
         </div>
-      </div>`)}
-    </div>`}
-  </div>`;}
+      </div>`).join('')}</div>`}
+  </div>`;
+}
+function resolveAlert(id){resolvedAlerts.push(id);render();}
 
-function Reports({students,behaviors}){
-  const [type,setType]=useState('student');
-  const [ssid,setSsid]=useState(''),[sg,setSg]=useState(5),[prev,setPrev]=useState(null);
-  const smap=useMemo(()=>Object.fromEntries(students.map(s=>[s.id,s])),[students]);
-  const genS=()=>{if(!ssid)return alert('اختر الطالب');
-    const st=smap[ssid],bs=behaviors.filter(b=>b.studentId===ssid&&!b.archived).sort((a,b)=>b.createdAt-a.createdAt);
-    const pos=bs.filter(b=>b.type==='positive').length,neg=bs.filter(b=>b.type==='negative').length;
-    const bal=bs.reduce((s,b)=>s+b.points,0);
-    setPrev({k:'s',student:st,behaviors:bs,stats:{pos,neg,bal}});};
-  const genG=()=>{const gs=students.filter(s=>s.grade===sg),ids=new Set(gs.map(s=>s.id));
-    const bs=behaviors.filter(b=>ids.has(b.studentId)&&!b.archived);
-    const rows=gs.map(s=>{const sbs=bs.filter(b=>b.studentId===s.id);
-      return{...s,pos:sbs.filter(b=>b.type==='positive').length,neg:sbs.filter(b=>b.type==='negative').length,
-        bal:sbs.reduce((a,b)=>a+b.points,0)};}).sort((a,b)=>b.bal-a.bal);
-    setPrev({k:'g',grade:sg,rows});};
-  return html`<div className="space-y-6 fade-in">
-    <header className="no-print"><h1 className="text-2xl lg:text-3xl font-black text-slate-800">📄 التقارير الرسمية</h1>
-    <p className="text-sm text-slate-500 mt-1">تقارير فردية وجماعية قابلة للطباعة</p></header>
-    <div className="bg-white rounded-2xl p-6 shadow-sm no-print">
-      <div className="flex gap-2 mb-6">
-        <button onClick=${()=>{setType('student');setPrev(null)}} className=${'flex-1 py-3 rounded-xl font-bold text-sm '+(type==='student'?'bg-primary text-white':'bg-slate-100')}>👤 تقرير طالب</button>
-        <button onClick=${()=>{setType('grade');setPrev(null)}} className=${'flex-1 py-3 rounded-xl font-bold text-sm '+(type==='grade'?'bg-primary text-white':'bg-slate-100')}>👥 تقرير صف</button>
+let reportType='student',reportSid='',reportGrade=5;
+function renderReports(){
+  return `<div class="space-y-6">
+    <header class="no-print"><h1 class="text-2xl lg:text-3xl font-black">📄 التقارير الرسمية</h1>
+    <p class="text-sm text-slate-500 mt-1">تقارير فردية وجماعية قابلة للطباعة</p></header>
+    <div class="bg-white rounded-2xl p-6 shadow-sm no-print">
+      <div class="flex gap-2 mb-6">
+        <button onclick="reportType='student';render()" class="flex-1 py-3 rounded-xl font-bold text-sm ${reportType==='student'?'bg-emerald-700 text-white':'bg-slate-100'}">👤 تقرير طالب</button>
+        <button onclick="reportType='grade';render()" class="flex-1 py-3 rounded-xl font-bold text-sm ${reportType==='grade'?'bg-emerald-700 text-white':'bg-slate-100'}">👥 تقرير صف</button>
       </div>
-      ${type==='student'?html`<div className="space-y-4">
-        <select value=${ssid} onChange=${e=>setSsid(e.target.value)} className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm bg-white focus:border-primary focus:outline-none">
+      ${reportType==='student'?`<div class="space-y-4">
+        <select onchange="reportSid=this.value" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm bg-white">
           <option value="">— اختر الطالب —</option>
-          ${GRADES.map(g=>html`<optgroup key=${g} label=${'الصف '+g}>
-            ${students.filter(s=>s.grade===g).map(s=>html`<option key=${s.id} value=${s.id}>${s.name} — ${s.section}</option>`)}
-          </optgroup>`)}
+          ${GRADES.map(g=>`<optgroup label="الصف ${g}">${DB.students.filter(s=>s.grade===g).map(s=>`<option value="${s.id}" ${reportSid===s.id?'selected':''}>${s.name} — ${s.section}</option>`).join('')}</optgroup>`).join('')}
         </select>
-        <button onClick=${genS} className="w-full bg-primary hover:bg-primary-dark text-white font-black py-3 rounded-xl">🔍 توليد</button>
-      </div>`:html`<div className="space-y-4">
-        <div className="grid grid-cols-5 gap-2">
-          ${GRADES.map(g=>html`<button key=${g} onClick=${()=>setSg(g)} className=${'py-3 rounded-xl font-bold text-sm '+(sg===g?'bg-primary text-white':'bg-slate-100')}>الصف ${g}</button>`)}
-        </div>
-        <button onClick=${genG} className="w-full bg-primary hover:bg-primary-dark text-white font-black py-3 rounded-xl">🔍 توليد</button>
+        <button onclick="printStudentReport()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black py-3 rounded-xl">🖨️ عرض وطباعة التقرير</button>
+      </div>`:`<div class="space-y-4">
+        <div class="grid grid-cols-5 gap-2">${GRADES.map(g=>`<button onclick="reportGrade=${g};render()" class="py-3 rounded-xl font-bold text-sm ${reportGrade===g?'bg-emerald-700 text-white':'bg-slate-100'}">الصف ${g}</button>`).join('')}</div>
+        <button onclick="printGradeReport()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black py-3 rounded-xl">🖨️ عرض وطباعة التقرير</button>
       </div>`}
     </div>
-    ${prev&&html`<div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <div className="p-4 bg-slate-50 border-b flex justify-between no-print">
-        <span className="text-sm font-bold">معاينة</span>
-        <div className="flex gap-2">
-          <button onClick=${()=>window.print()} className="bg-primary text-white font-bold px-4 py-2 rounded-lg text-xs">🖨️ طباعة / PDF</button>
-          <button onClick=${()=>setPrev(null)} className="bg-slate-200 font-bold px-4 py-2 rounded-lg text-xs">إغلاق</button>
-        </div>
+    <div id="reportArea"></div>
+  </div>`;
+}
+function printStudentReport(){
+  if(!reportSid)return alert('اختر الطالب');
+  const s=getStudent(reportSid);
+  const bs=DB.behaviors.filter(b=>b.studentId===reportSid&&!b.archived).sort((a,b)=>b.createdAt-a.createdAt);
+  const pos=bs.filter(b=>b.type==='positive').length,neg=bs.filter(b=>b.type==='negative').length;
+  const bal=bs.reduce((x,b)=>x+b.points,0);
+  document.getElementById('reportArea').innerHTML=`<div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div class="p-4 bg-slate-50 border-b flex justify-between no-print">
+      <span class="text-sm font-bold">معاينة</span>
+      <button onclick="window.print()" class="bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs">🖨️ طباعة</button>
+    </div>
+    <div class="p-8">
+      <div class="text-center border-b-4 border-emerald-700 pb-4 mb-6">
+        <div class="font-black text-xl text-emerald-700">مدرسة المسعى للتعليم الأساسي للبنين (٥-٩)</div>
+        <div class="text-xs text-slate-500 mt-1">وزارة التربية والتعليم — سلطنة عُمان</div>
+        <div class="text-lg font-black mt-3">تقرير السلوك الطلابي</div>
+        <div class="text-xs text-slate-500 mt-1">${new Date().toLocaleDateString('ar-OM',{year:'numeric',month:'long',day:'numeric'})}</div>
       </div>
-      <div className="p-8">
-        <div className="text-center border-b-4 border-primary pb-4 mb-6">
-          <div className="font-black text-xl text-primary">مدرسة المسعى للتعليم الأساسي للبنين (٥-٩)</div>
-          <div className="text-xs text-slate-500 mt-1">وزارة التربية والتعليم — سلطنة عُمان</div>
-          <div className="text-lg font-black mt-3">${prev.k==='s'?'تقرير السلوك الطلابي':'تقرير السلوك الجماعي — الصف '+prev.grade}</div>
-          <div className="text-xs text-slate-500 mt-1">${new Date().toLocaleDateString('ar-OM',{year:'numeric',month:'long',day:'numeric'})}</div>
-        </div>
-        ${prev.k==='s'?html`<>
-          <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-            <div><span className="font-bold text-slate-500">الطالب:</span> <span className="font-black">${prev.student.name}</span></div>
-            <div><span className="font-bold text-slate-500">الصف:</span> <span className="font-black">${prev.student.grade} / ${prev.student.section}</span></div>
-            <div><span className="font-bold text-slate-500">ولي الأمر:</span> <span className="font-black">${prev.student.guardian}</span></div>
-            <div><span className="font-bold text-slate-500">الهاتف:</span> <span className="font-black">${prev.student.phone}</span></div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-primary-soft rounded-xl p-3 text-center"><div className="text-xs font-bold text-primary-dark">تعزيزات</div><div className="text-2xl font-black text-primary">${prev.stats.pos}</div></div>
-            <div className="bg-danger-soft rounded-xl p-3 text-center"><div className="text-xs font-bold text-danger">مخالفات</div><div className="text-2xl font-black text-danger">${prev.stats.neg}</div></div>
-            <div className="bg-slate-100 rounded-xl p-3 text-center"><div className="text-xs font-bold text-slate-600">الرصيد</div><div className=${'text-2xl font-black '+(prev.stats.bal>=0?'text-primary':'text-danger')}>${prev.stats.bal}</div></div>
-          </div>
-          <table className="w-full text-xs border-collapse">
-            <thead><tr className="bg-primary text-white">
-              <th className="border border-slate-300 px-2 py-2">التاريخ</th><th className="border border-slate-300 px-2 py-2">النوع</th>
-              <th className="border border-slate-300 px-2 py-2">البند</th><th className="border border-slate-300 px-2 py-2">النقاط</th>
-              <th className="border border-slate-300 px-2 py-2">المعلم</th>
-            </tr></thead>
-            <tbody>${prev.behaviors.slice(0,25).map(b=>html`<tr key=${b.id}>
-              <td className="border px-2 py-1.5 text-center">${fmtDate(b.createdAt)}</td>
-              <td className="border px-2 py-1.5 text-center">${b.type==='positive'?'إيجابي':'سلبي'}</td>
-              <td className="border px-2 py-1.5">${b.category}</td>
-              <td className=${'border px-2 py-1.5 text-center font-bold '+(b.type==='positive'?'text-primary':'text-danger')}>${b.points>0?'+':''}${b.points}</td>
-              <td className="border px-2 py-1.5 text-center">${b.teacher}</td>
-            </tr>`)}</tbody>
-          </table>
-        </>`:html`<table className="w-full text-xs border-collapse">
-          <thead><tr className="bg-primary text-white">
-            <th className="border px-2 py-2">#</th><th className="border px-2 py-2">الطالب</th>
-            <th className="border px-2 py-2">الفصل</th><th className="border px-2 py-2">تعزيزات</th>
-            <th className="border px-2 py-2">مخالفات</th><th className="border px-2 py-2">الرصيد</th>
-          </tr></thead>
-          <tbody>${prev.rows.map((s,i)=>html`<tr key=${s.id}>
-            <td className="border px-2 py-1.5 text-center">${i+1}</td>
-            <td className="border px-2 py-1.5 font-bold">${s.name}</td>
-            <td className="border px-2 py-1.5 text-center">${s.section}</td>
-            <td className="border px-2 py-1.5 text-center text-primary font-bold">${s.pos}</td>
-            <td className="border px-2 py-1.5 text-center text-danger font-bold">${s.neg}</td>
-            <td className=${'border px-2 py-1.5 text-center font-black '+(s.bal>=0?'text-primary':'text-danger')}>${s.bal}</td>
-          </tr>`)}</tbody>
-        </table>`}
-        <div className="mt-10 flex justify-between text-xs">
-          <div className="text-center"><div className="font-bold mb-12">توقيع الأخصائي</div><div className="border-t border-slate-400 pt-1 px-8">.................</div></div>
-          <div className="text-center"><div className="font-bold mb-12">توقيع المدير</div><div className="border-t border-slate-400 pt-1 px-8">.................</div></div>
-        </div>
+      <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+        <div><b class="text-slate-500">الطالب:</b> ${s.name}</div>
+        <div><b class="text-slate-500">الصف:</b> ${s.grade}/${s.section}</div>
+        <div><b class="text-slate-500">ولي الأمر:</b> ${s.guardian}</div>
+        <div><b class="text-slate-500">الهاتف:</b> ${s.phone}</div>
       </div>
-    </div>`}
-  </div>`;}
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="bg-emerald-50 rounded-xl p-3 text-center"><div class="text-xs font-bold text-emerald-700">تعزيزات</div><div class="text-2xl font-black text-emerald-700">${pos}</div></div>
+        <div class="bg-red-50 rounded-xl p-3 text-center"><div class="text-xs font-bold text-red-600">مخالفات</div><div class="text-2xl font-black text-red-600">${neg}</div></div>
+        <div class="bg-slate-100 rounded-xl p-3 text-center"><div class="text-xs font-bold">الرصيد</div><div class="text-2xl font-black ${bal>=0?'text-emerald-700':'text-red-600'}">${bal}</div></div>
+      </div>
+      <table class="w-full text-xs border-collapse">
+        <thead><tr class="bg-emerald-700 text-white">
+          <th class="border px-2 py-2">التاريخ</th><th class="border px-2 py-2">النوع</th>
+          <th class="border px-2 py-2">البند</th><th class="border px-2 py-2">النقاط</th><th class="border px-2 py-2">المعلم</th>
+        </tr></thead>
+        <tbody>${bs.slice(0,25).map(b=>`<tr>
+          <td class="border px-2 py-1.5 text-center">${fmtDate(b.createdAt)}</td>
+          <td class="border px-2 py-1.5 text-center">${b.type==='positive'?'إيجابي':'سلبي'}</td>
+          <td class="border px-2 py-1.5">${b.category}</td>
+          <td class="border px-2 py-1.5 text-center font-bold ${b.type==='positive'?'text-emerald-700':'text-red-600'}">${b.points>0?'+':''}${b.points}</td>
+          <td class="border px-2 py-1.5 text-center">${b.teacher}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="mt-10 flex justify-between text-xs">
+        <div class="text-center"><div class="font-bold mb-12">توقيع الأخصائي</div><div class="border-t border-slate-400 pt-1 px-8">.................</div></div>
+        <div class="text-center"><div class="font-bold mb-12">توقيع المدير</div><div class="border-t border-slate-400 pt-1 px-8">.................</div></div>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('reportArea').scrollIntoView({behavior:'smooth'});
+}
+function printGradeReport(){
+  const gs=DB.students.filter(s=>s.grade===reportGrade);
+  const ids=gs.map(s=>s.id);
+  const rows=gs.map(s=>{const sbs=DB.behaviors.filter(b=>b.studentId===s.id&&!b.archived);
+    return{...s,pos:sbs.filter(b=>b.type==='positive').length,neg:sbs.filter(b=>b.type==='negative').length,bal:sbs.reduce((a,b)=>a+b.points,0)};}).sort((a,b)=>b.bal-a.bal);
+  document.getElementById('reportArea').innerHTML=`<div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div class="p-4 bg-slate-50 border-b flex justify-between no-print">
+      <span class="text-sm font-bold">معاينة</span>
+      <button onclick="window.print()" class="bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs">🖨️ طباعة</button>
+    </div>
+    <div class="p-8">
+      <div class="text-center border-b-4 border-emerald-700 pb-4 mb-6">
+        <div class="font-black text-xl text-emerald-700">مدرسة المسعى للتعليم الأساسي للبنين (٥-٩)</div>
+        <div class="text-lg font-black mt-3">تقرير السلوك الجماعي — الصف ${reportGrade}</div>
+        <div class="text-xs text-slate-500 mt-1">${new Date().toLocaleDateString('ar-OM',{year:'numeric',month:'long',day:'numeric'})}</div>
+      </div>
+      <table class="w-full text-xs border-collapse">
+        <thead><tr class="bg-emerald-700 text-white">
+          <th class="border px-2 py-2">#</th><th class="border px-2 py-2">الطالب</th>
+          <th class="border px-2 py-2">الفصل</th><th class="border px-2 py-2">تعزيزات</th>
+          <th class="border px-2 py-2">مخالفات</th><th class="border px-2 py-2">الرصيد</th>
+        </tr></thead>
+        <tbody>${rows.map((s,i)=>`<tr>
+          <td class="border px-2 py-1.5 text-center">${i+1}</td>
+          <td class="border px-2 py-1.5 font-bold">${s.name}</td>
+          <td class="border px-2 py-1.5 text-center">${s.section}</td>
+          <td class="border px-2 py-1.5 text-center text-emerald-700 font-bold">${s.pos}</td>
+          <td class="border px-2 py-1.5 text-center text-red-600 font-bold">${s.neg}</td>
+          <td class="border px-2 py-1.5 text-center font-black ${s.bal>=0?'text-emerald-700':'text-red-600'}">${s.bal}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+  document.getElementById('reportArea').scrollIntoView({behavior:'smooth'});
+}
 
-function App(){
-  const [state,setState]=useState(load);
-  const [page,setPage]=useState('dash');
-  const [resolved,setResolved]=useState([]);
-  useEffect(()=>save(state),[state]);
-  const {students,behaviors}=state;
-  const add=useCallback(b=>setState(s=>({...s,behaviors:[{id:'B'+Date.now(),...b,createdAt:Date.now(),archived:false},...s.behaviors]})),[]);
-  const arch=useCallback(id=>setState(s=>({...s,behaviors:s.behaviors.map(b=>b.id===id?{...b,archived:!b.archived}:b)})),[]);
-  const del=useCallback(id=>setState(s=>({...s,behaviors:s.behaviors.filter(b=>b.id!==id)})),[]);
-  const ac=useMemo(()=>{const now=Date.now();
-    const in30=behaviors.filter(b=>!b.archived&&now-b.createdAt<=30*864e5);
-    const bs={};in30.forEach(b=>{if(!bs[b.studentId])bs[b.studentId]={neg:0,pos:0};
-      if(b.type==='negative')bs[b.studentId].neg++;else bs[b.studentId].pos++;});
-    let c=0;Object.entries(bs).forEach(([sid,s])=>{
-      if(s.neg>=3&&!resolved.includes(sid+'_risk'))c++;
-      if(s.neg>s.pos*2&&s.neg>=2&&!resolved.includes(sid+'_trend'))c++;});
-    return c;},[behaviors,resolved]);
-  return html`<div className="min-h-screen flex flex-row-reverse bg-slate-50">
-    <${Sidebar} page=${page} setPage=${setPage} ac=${ac}/>
-    <main className="flex-1 overflow-x-hidden">
-      <div className="p-4 lg:p-8 pt-20 lg:pt-8">
-        ${page==='dash'&&html`<${Dashboard} students=${students} behaviors=${behaviors} nav=${setPage}/>`}
-        ${page==='entry'&&html`<${Entry} students=${students} onAdd=${add}/>`}
-        ${page==='log'&&html`<${Log} students=${students} behaviors=${behaviors} onArch=${arch} onDel=${del}/>`}
-        ${page==='students'&&html`<${Students} students=${students} behaviors=${behaviors}/>`}
-        ${page==='ai'&&html`<${AI} students=${students} behaviors=${behaviors}/>`}
-        ${page==='alerts'&&html`<${Alerts} students=${students} behaviors=${behaviors} resolved=${resolved} onResolve=${id=>setResolved(r=>[...r,id])}/>`}
-        ${page==='reports'&&html`<${Reports} students=${students} behaviors=${behaviors}/>`}
-      </div>
-    </main>
-  </div>`;}
-
-ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+// ===== بدء التشغيل =====
+renderCats();
+showPage('dash');
 </script>
 </body>
 </html>
