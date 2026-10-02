@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>منصة مدرسة المسعى للتعليم الأساسي للبنين (٥-٩)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Cairo', 'sans-serif'] },
+        colors: {
+          primary: { DEFAULT: '#047857', light: '#10B981', dark: '#065F46', soft: '#ECFDF5' },
+          accent:  { DEFAULT: '#F59E0B', soft: '#FEF3C7' },
+          danger:  { DEFAULT: '#DC2626', soft: '#FEE2E2' },
+        },
+        boxShadow: {
+          soft: '0 4px 20px -4px rgba(4,120,87,0.12)',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Cairo', system-ui, sans-serif; background: #F8FAFC; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+  .fade-in { animation: fadeIn .3s ease-in; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+/* ============================================================
+   البيانات المرجعية
+   ============================================================ */
+const GRADES = [5, 6, 7, 8, 9];
+const SECTIONS = ['أ', 'ب', 'ج'];
+
+const POSITIVE_CATEGORIES = [
+  { id: 'p1', label: 'مشاركة فعالة في الحصة', points: 2 },
+  { id: 'p2', label: 'مساعدة زميل', points: 3 },
+  { id: 'p3', label: 'التزام بالواجبات المدرسية', points: 2 },
+  { id: 'p4', label: 'سلوك متميز في الطابور', points: 2 },
+  { id: 'p5', label: 'تحسن ملحوظ في الأداء', points: 4 },
+  { id: 'p6', label: 'مبادرة إيجابية متميزة', points: 3 },
+  { id: 'p7', label: 'المحافظة على نظافة المدرسة', points: 2 },
+  { id: 'p8', label: 'تمثيل المدرسة في نشاط', points: 5 },
+];
+
+const NEGATIVE_CATEGORIES = [
+  { id: 'n1', label: 'تأخر عن الحصة', points: 1 },
+  { id: 'n2', label: 'عدم إحضار الكتب والأدوات', points: 2 },
+  { id: 'n3', label: 'إزعاج الصف وتشويش النظام', points: 2 },
+  { id: 'n4', label: 'التلفظ بألفاظ غير لائقة', points: 3 },
+  { id: 'n5', label: 'التخلف عن الطابور الصباحي', points: 1 },
+  { id: 'n6', label: 'مشاجرة مع زميل', points: 5 },
+  { id: 'n7', label: 'إتلاف ممتلكات المدرسة', points: 5 },
+  { id: 'n8', label: 'الغياب بدون عذر مقبول', points: 3 },
+  { id: 'n9', label: 'استخدام الهاتف داخل الصف', points: 3 },
+  { id: 'n10', label: 'عدم تنفيذ توجيهات المعلم', points: 2 },
+];
+
+const ARABIC_NAMES = [
+  'أحمد بن سالم الرواحي','محمد بن خالد البلوشي','يوسف بن علي المعمري','عبدالله بن حمد الحارثي',
+  'سعيد بن راشد الكندي','خالد بن ناصر الفارسي','سلطان بن ماجد الشكيلي','حمزة بن ياسر العامري',
+  'طلال بن سعيد الهنائي','فهد بن عبدالرحمن الزدجالي','بدر بن سليمان الريامي','مازن بن حمدان الحجري',
+  'معاذ بن طارق السعدي','أيمن بن وليد المقبالي','راشد بن سيف الخروصي','هلال بن منصور الغافري',
+  'نبيل بن عامر الحوسني','قيس بن مروان الوهيبي','زياد بن فارس اليعقوبي','مروان بن أيمن السيابي',
+  'حاتم بن صالح العبري','عمار بن نبيل الجابري','أنس بن كمال الرئيسي','بلال بن هيثم المخيني',
+  'جعفر بن عادل الشعيلي','كرم بن رامي الصوافي','ليث بن جابر الحسني','مصعب بن أنور البوسعيدي',
+  'نزار بن صقر الهاشمي','وسام بن فاروق الأغبري','ياسر بن رمزي العجمي','يعقوب بن إسحاق النعماني',
+  'أسامة بن زهير الكلباني','إبراهيم بن نوح المسروري','إسماعيل بن ياسين الحبسي','بشار بن حكيم الشيباني',
+  'تمام بن سامي البطاشي','ثامر بن سليمان القريني','جاسم بن جابر العويسي','حسام بن لؤي المزروعي',
+  'رشيد بن عامر البلوشي','سامر بن منير الحديدي','شادي بن بشير اللواتي','صفوان بن رشيد الرحبي',
+  'طلحة بن زياد الفليتي','عبيد بن مبارك الوائلي','غيث بن هلال المحروقي','فيصل بن جمعة الروشدي',
+];
+
+const TEACHERS = [
+  'أ. سعيد العامري','أ. خالد البلوشي','أ. محمد المعمري','أ. يوسف الحارثي',
+  'أ. أحمد الرواحي','أ. حمود الكندي','أ. راشد الفارسي','أ. سالم الشكيلي',
+];
+
+/* ============================================================
+   توليد بيانات أولية
+   ============================================================ */
+function seedData() {
+  const students = ARABIC_NAMES.map((name, i) => ({
+    id: 'S' + String(i + 1).padStart(3, '0'),
+    name,
+    grade: GRADES[i % GRADES.length],
+    section: SECTIONS[i % SECTIONS.length],
+    guardian: 'ولي أمر ' + name.split(' ')[0],
+    phone: '9' + String(1000000 + Math.floor(Math.random() * 8999999)),
+  }));
+
+  const behaviors = [];
+  const now = Date.now();
+  const behaviorCount = 220;
+
+  for (let i = 0; i < behaviorCount; i++) {
+    const student = students[Math.floor(Math.random() * students.length)];
+    // 60% إيجابي، 40% سلبي
+    const isPositive = Math.random() < 0.6;
+    const cat = isPositive
+      ? POSITIVE_CATEGORIES[Math.floor(Math.random() * POSITIVE_CATEGORIES.length)]
+      : NEGATIVE_CATEGORIES[Math.floor(Math.random() * NEGATIVE_CATEGORIES.length)];
+
+    // توزيع على آخر 60 يوماً
+    const daysAgo = Math.floor(Math.random() * 60);
+    const createdAt = now - daysAgo * 86400000 - Math.floor(Math.random() * 86400000);
+
+    behaviors.push({
+      id: 'B' + String(i + 1).padStart(4, '0'),
+      studentId: student.id,
+      type: isPositive ? 'positive' : 'negative',
+      categoryId: cat.id,
+      category: cat.label,
+      points: isPositive ? cat.points : -cat.points,
+      description: '',
+      teacher: TEACHERS[Math.floor(Math.random() * TEACHERS.length)],
+      createdAt,
+      archived: false,
+    });
+  }
+
+  // طلاب ذوو تكرار سلبي لتفعيل التنبيهات
+  const riskIds = [students[0].id, students[3].id, students[7].id, students[12].id];
+  riskIds.forEach((sid, idx) => {
+    for (let k = 0; k < 4 + idx; k++) {
+      const cat = NEGATIVE_CATEGORIES[k % NEGATIVE_CATEGORIES.length];
+      behaviors.push({
+        id: 'BR' + idx + '_' + k,
+        studentId: sid,
+        type: 'negative',
+        categoryId: cat.id,
+        category: cat.label,
+        points: -cat.points,
+        description: 'تكرار مخالفة',
+        teacher: TEACHERS[k % TEACHERS.length],
+        createdAt: now - (k + 1) * 3 * 86400000,
+        archived: false,
+      });
+    }
+  });
+
+  behaviors.sort((a, b) => b.createdAt - a.createdAt);
+  return { students, behaviors };
+}
+
+/* ============================================================
+   التخزين المحلي
+   ============================================================ */
+const STORAGE_KEY = 'almasaa_behavior_platform_v1';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return seedData();
+}
+
+function saveState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {}
+}
+
+/* ============================================================
+   محرك الذكاء الاصطناعي
+   ============================================================ */
+function runAIAnalysis(students, behaviors) {
+  const now = Date.now();
+  const in30 = behaviors.filter(b => now - b.createdAt <= 30 * 86400000 && !b.archived);
+
+  // 1) تحليل الطلاب ذوي الأولوية
+  const studentStats = students.map(s => {
+    const sBehaviors = in30.filter(b => b.studentId === s.id);
+    const neg = sBehaviors.filter(b => b.type === 'negative').length;
+    const pos = sBehaviors.filter(b => b.type === 'positive').length;
+    const total = neg + pos;
+    const negRatio = total ? neg / total : 0;
+    let risk = 'low';
+    if (neg >= 4 || negRatio >= 0.7) risk = 'high';
+    else if (neg >= 2 || negRatio >= 0.5) risk = 'medium';
+    return { ...s, negCount: neg, posCount: pos, negRatio, risk };
+  });
+
+  const riskStudents = studentStats
+    .filter(s => s.risk !== 'low')
+    .sort((a, b) => (b.risk === 'high' ? 1 : 0) - (a.risk === 'high' ? 1 : 0) || b.negCount - a.negCount);
+
+  // 2) اكتشاف الأنماط المتكررة
+  const catCount = {};
+  in30.filter(b => b.type === 'negative').forEach(b => {
+    catCount[b.category] = (catCount[b.category] || 0) + 1;
+  });
+  const repeatedPatterns = Object.entries(catCount)
+    .map(([cat, count]) => ({ cat, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // 3) توزيع حسب الصف
+  const byGrade = GRADES.map(g => ({
+    grade: g,
+    positive: in30.filter(b => {
+      const st = students.find(x => x.id === b.studentId);
+      return st && st.grade === g && b.type === 'positive';
+    }).length,
+    negative: in30.filter(b => {
+      const st = students.find(x => x.id === b.studentId);
+      return st && st.grade === g && b.type === 'negative';
+    }).length,
+  }));
+
+  // 4) توصيات تربوية ذكية
+  const recommendations = [];
+  if (repeatedPatterns[0] && repeatedPatterns[0].count >= 5) {
+    recommendations.push({
+      icon: '⚠️',
+      level: 'warning',
+      text: `النمط الأكثر تكراراً هو "${repeatedPatterns[0].cat}" (${repeatedPatterns[0].count} حالة خلال 30 يوماً). يُنصح بتنظيم حملة توعوية شاملة للصفوف المعنية.`,
+    });
+  }
+  const highRisk = riskStudents.filter(s => s.risk === 'high');
+  if (highRisk.length > 0) {
+    recommendations.push({
+      icon: '🔔',
+      level: 'danger',
+      text: `يوجد ${highRisk.length} طالباً في مستوى خطر مرتفع. يُقترح تشكيل خطة تدخل فردية بمشاركة المرشد الطلابي وأولياء الأمور خلال أسبوع.`,
+    });
+  }
+  const totalPos = in30.filter(b => b.type === 'positive').length;
+  const totalNeg = in30.filter(b => b.type === 'negative').length;
+  if (totalPos > totalNeg * 1.5) {
+    recommendations.push({
+      icon: '✅',
+      level: 'success',
+      text: `المؤشر العام إيجابي (${totalPos} تعزيز مقابل ${totalNeg} مخالفة). يمكن تعزيز الدافعية ببرنامج نقاط شهرية مع تكريم أسبوعي.`,
+    });
+  } else if (totalNeg > totalPos) {
+    recommendations.push({
+      icon: '📉',
+      level: 'warning',
+      text: `عدد المخالفات (${totalNeg}) يتجاوز التعزيزات (${totalPos}). يُوصى بمراجعة لائحة السلوك وتفعيل نظام تحفيز متوازن.`,
+    });
+  }
+  const worstGrade = [...byGrade].sort((a, b) => b.negative - a.negative)[0];
+  if (worstGrade && worstGrade.negative > 5) {
+    recommendations.push({
+      icon: '🎯',
+      level: 'info',
+      text: `الصف ${worstGrade.grade} يسجّل أعلى نسبة مخالفات (${worstGrade.negative} حالة). يُقترح اجتماع مع مربي الصف لوضع خطة تصحيحية.`,
+    });
+  }
+  if (recommendations.length === 0) {
+    recommendations.push({
+      icon: '🟢',
+      level: 'success',
+      text: 'لا توجد أنماط سلبية حرجة حالياً. استمروا في تعزيز السلوك الإيجابي.',
+    });
+  }
+
+  return { riskStudents, repeatedPatterns, byGrade, recommendations, in30 };
+}
+
+/* ============================================================
+   أدوات مساعدة
+   ============================================================ */
+const fmtDate = (ts) =>
+  new Date(ts).toLocaleDateString('ar-OM', { year: 'numeric', month: 'short', day: 'numeric' });
+
+const timeAgo = (ts) => {
+  const diff = Math.floor((Date.now() - ts) / 86400000);
+  if (diff === 0) return 'اليوم';
+  if (diff === 1) return 'أمس';
+  return `قبل ${diff} يوم`;
+};
+
+/* ============================================================
+   مكونات واجهة عامة
+   ============================================================ */
+function Logo({ size = 'md' }) {
+  const s = size === 'lg' ? 'w-14 h-14' : 'w-10 h-10';
+  return (
+    <div className={`${s} rounded-2xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-soft flex-shrink-0`}>
+      <svg viewBox="0 0 24 24" fill="none" className="w-2/3 h-2/3">
+        <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round" fill="#F59E0B" fillOpacity="0.15"/>
+        <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+      </svg>
+    </div>
+  );
+}
+
+function Badge({ children, color = 'slate' }) {
+  const colors = {
+    slate: 'bg-slate-100 text-slate-700',
+    green: 'bg-primary-soft text-primary-dark',
+    red: 'bg-danger-soft text-danger',
+    amber: 'bg-accent-soft text-amber-800',
+    blue: 'bg-blue-100 text-blue-700',
+  };
+  return <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${colors[color]}`}>{children}</span>;
+}
+
+function StatCard({ title, value, sub, icon, tone = 'primary' }) {
+  const tones = {
+    primary: 'from-primary to-primary-dark text-white',
+    accent: 'from-amber-500 to-amber-600 text-white',
+    danger: 'from-rose-500 to-rose-600 text-white',
+    slate: 'from-slate-700 to-slate-800 text-white',
+  };
+  return (
+   Students <div className={`bg-gradient-to-br ${.lengthtones[tone]}} rounded-2xl p-5 icon shadow-soft relative overflow-hidden`}>
+      <="div className="absolute -left-4 -bottom-4 opacity-15 text-8xl">{icon}</div>
+      <div className="relative">
+        <div className="text-xs font-semibold opacity-90">{title}</div>
+        <div className="text-3xl font-black mt-2">{value}</div>
+        {sub && <div className="text-xs mt-1 opacity-80">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function DonutChart({ positive, negative }) {
+  const total = positive + negative || 1;
+  const pct = Math.round((positive / total) * 100);
+  const circumference = 2 * Math.PI * 42;
+  const dash = (pct / 100) * circumference;
+
+  return (
+    <div className="flex items-center gap-6">
+      <svg viewBox="0 0 100 100" className="w-32 h-32 -rotate-90">
+        <circle cx="50" cy="50" r="42" stroke="#FEE2E2" strokeWidth="12" fill="none" />
+        <circle cx="50" cy="50" r="42" stroke="#10B981" strokeWidth="12" fill="none"
+          strokeDasharray={`${dash} ${circumference}`} strokeLinecap="round" />
+      </svg>
+      <div>
+        <div className="text-3xl font-black text-primary">{pct}%</div>
+        <div className="text-sm text-slate-600 mt-1">نسبة السلوك الإيجابي</div>
+        <div className="flex items-center gap-3 mt-3 text-xs">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary-light"></span> إيجابي ({positive})</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-rose-400"></span> سلبي ({negative})</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GradeBars({ data }) {
+  const max = Math.max(...data.map(d => d.positive + d.negative), 1);
+  return (
+    <div className="space-y-3">
+      {data.map(d => {
+        const total = d.positive + d.negative;
+        const totalPct = (total / max) * 100;
+        const posPct = total ? (d.positive / total) * 100 : 0;
+        return (
+          <div key={d.grade} className="flex items-center gap-3">
+            <div className="w-14 text-sm font-bold text-slate-700">الصف {d.grade}</div>
+            <div className="flex-1 h-6 bg-slate-100 rounded-lg overflow-hidden relative">
+              <div className="h-full flex" style={{ width: `${totalPct}%` }}>
+                <div className="h-full bg-primary-light" style={{ width: `${posPct}%` }}></div>
+                <div className="h-full bg-rose-400" style={{ width: `${100 - posPct}%` }}></div>
+              </div>
+            </div>
+            <div className="w-16 text-left text-xs font-bold text-slate-500">{total} حالة</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   الشريط الجانبي
+   ============================================================ */
+const NAV = [
+  { id: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
+  { id: 'entry',     label: 'تسجيل سلوك', icon: '✍️' },
+  { id: 'log',       label: 'سجل السلوكيات', icon: '📋' },
+  { id: 'students',  label: 'الطلبة', icon: '👥' },
+  { id: 'ai',        label: 'الإرشاد الذكي', icon: '🧠' },
+  { id: 'alerts',    label: 'التنبيهات', icon: '🔔' },
+  { id: 'reports',   label: 'التقارير', icon: '📄' },
+];
+
+function Sidebar({ page, setPage, alertsCount }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(!open)}
+        className="lg:hidden fixed top-4 right-4 z-50 bg-primary text-white p-3 rounded-xl shadow-lg">
+        ☰
+      </button>
+      <aside className={`fixed lg:static top-0 right-0 h-screen w-72 bg-white border-l border-slate-200 z-40
+        transform transition-transform ${open ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'} flex flex-col`}>
+        <div className="p-5 border-b border-slate-100 flex items-center gap-3">
+          <Logo size="lg" />
+          <div>
+            <div className="font-black text-primary leading-tight text-sm">مدرسة المسعى</div>
+            <div className="text-xs text-slate-500">للتعليم الأساسي للبنين ٥-٩</div>
+          </div>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {NAV.map(item => (
+            <button key={item.id}
+              onClick={() => { setPage(item.id); setOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition
+                ${page === item.id ? 'bg-primary text-white shadow-soft' : 'text-slate-700 hover:bg-primary-soft'}`}>
+              <span className="text-lg">{item.icon}</span>
+              <span className="flex-1 text-right">{item.label}</span>
+              {item.id === 'alerts' && alertsCount > 0 && (
+                <span className="bg-danger text-white text-xs font-black rounded-full min-w-[22px] h-5 flex items-center justify-center px-1.5">
+                  {alertsCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="p-4 border-t border-slate-100 text-center">
+          <div className="text-[10px] text-slate-400">منصة إدارة السلوك الطلابي · v1.0</div>
+        </div>
+      </aside>
+      {open && <div onClick={() => setOpen(false)} className="lg:hidden fixed inset-0 bg-black/40 z-30"></div>}
+    </>
+  );
+}
+
+/* ============================================================
+   لوحة التحكم
+   ============================================================ */
+function Dashboard({ students, behaviors, onNavigate }) {
+  const analysis = useMemo(() => runAIAnalysis(students, behaviors), [students, behaviors]);
+  const totalPos = analysis.in30.filter(b => b.type === 'positive').length;
+  const totalNeg = analysis.in30.filter(b => b.type === 'negative').length;
+
+  const recent = behaviors.filter(b => !b.archived).slice(0, 6);
+  const studentMap = Object.fromEntries(students.map(s => [s.id, s]));
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-800">لوحة التحكم</h1>
+          <p className="text-sm text-slate-500 mt-1">نظرة شاملة على السلوك الطلابي خلال آخر 30 يوماً</p>
+        </div>
+        <button onClick={() => onNavigate('entry')}
+          className="bg-primary hover:bg-primary-dark text-white font-bold px-5 py-3 rounded-xl shadow-soft transition">
+          + تسجيل سلوك جديد
+        </button>
+      </header>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="إجمالي السجلات (30 يوم)" value={analysis.in30.length} icon="📈" tone="slate" sub={`${behaviors.length} سجل كلي`} />
+        <StatCard title="سلوكيات إيجابية" value={totalPos} icon="✅" tone="primary" sub="تعزيز ودافعية" />
+        <StatCard title="مخالفات لائحية" value={totalNeg} icon="⚠️" tone="danger" sub="تحتاج متابعة" />
+        <StatCard title="طلاب أولوية" value={analysis.risk🎯" tone="accent" sub="مستوى خطر متوسط أو مرتفع" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-soft">
+          <h3 className="font-black text-slate-800 mb-4">نسبة السلوك الإيجابي مقابل السلبي</h3>
+          <DonutChart positive={totalPos} negative={totalNeg} />
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-soft">
+          <h3 className="font-black text-slate-800 mb-4">توزيع السلوكيات حسب الصفوف</h3>
+          <GradeBars data={analysis.byGrade} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-soft">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-black text-slate-800">أحدث السلوكيات المسجلة</h3>
+            <button onClick={() => onNavigate('log')} className="text-xs font-bold text-primary hover:underline">عرض الكل ←</button>
+          </div>
+          <div className="space-y-2">
+            {recent.map(b => {
+              const st = studentMap[b.studentId];
+              const isPos = b.type === 'positive';
+              return (
+                <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${isPos ? 'bg-primary-soft text-primary-dark' : 'bg-danger-soft text-danger'}`}>
+                    {isPos ? '✓' : '!'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-slate-800 truncate">{st?.name || 'طالب'}</div>
+                    <div className="text-xs text-slate-500 truncate">{b.category} · {b.teacher}</div>
+                  </div>
+                  <div className="text-left">
+                    <Badge color={isPos ? 'green' : 'red'}>{isPos ? '+' : ''}{b.points}</Badge>
+                    <div className="text-[10px] text-slate-400 mt-1">{timeAgo(b.createdAt)}</div>
+                  </div>
+                </div>
+              );
+            })}
+            {recent.length === 0 && <div className="text-center text-slate-400 py-8">لا توجد سجلات بعد</div>}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-soft">
+          <h3 className="font-black text-slate-800 mb-4">🧠 توصيات ذكية</h3>
+          <div className="space-y-3">
+            {analysis.recommendations.slice(0, 3).map((r, i) => (
+              <div key={i} className={`text-xs p-3 rounded-xl border-r-4 leading-relaxed
+                ${r.level === 'danger' ? 'bg-danger-soft border-danger text-rose-900' :
+                  r.level === 'warning' ? 'bg-accent-soft border-accent text-amber-900' :
+                  r.level === 'info' ? 'bg-blue-50 border-blue-500 text-blue-900' :
+                  'bg-primary-soft border-primary text-primary-dark'}`}>
+                <span className="ml-1">{r.icon}</span>
+                {r.text}
+              </div>
+            ))}
+          </div>
+          <button onClick={() => onNavigate('ai')}
+            className="w-full mt-4 text-xs font-bold text-primary hover:bg-primary-soft py-2 rounded-lg transition">
+            عرض التحليل الكامل ←
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   نموذج تسجيل السلوك
+   ============================================================ */
+function BehaviorEntry({ students, onAdd }) {
+  const [type, setType] = useState('negative');
+  const [form, setForm] = useState({
+    studentId: '', categoryId: '', description: '', teacher: TEACHERS[0],
+  });
+  const [toast, setToast] = useState(null);
+
+  const categories = type === 'positive' ? POSITIVE_CATEGORIES : NEGATIVE_CATEGORIES;
+  const selectedCat = categories.find(c => c.id === form.categoryId);
+
+  const filteredStudents = useMemo(() => {
+    return [...students].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  }, [students]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.studentId || !form.categoryId || !form.teacher) {
+      setToast({ type: 'error', msg: 'يرجى استكمال الحقول المطلوبة' });
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    const cat = categories.find(c => c.id === form.categoryId);
+    onAdd({
+      studentId: form.studentId,
+      type,
+      categoryId: cat.id,
+      category: cat.label,
+      points: type === 'positive' ? cat.points : -cat.points,
+      description: form.description,
+      teacher: form.teacher,
+    });
+    setToast({ type: 'success', msg: 'تم تسجيل السلوك بنجاح ✓' });
+    setTimeout(() => setToast(null), 2500);
+    setForm(f => ({ ...f, studentId: '', categoryId: '', description: '' }));
+  };
+
+  return (
+    <div className="space-y-6 fade-in max-w-3xl">
+      <header>
+        <h1 className="text-2xl lg:text-3xl font-black text-slate-800">تسجيل سلوك طالب</h1>
+        <p className="text-sm text-slate-500 mt-1">نموذج إدخال سريع لمتابعة السلوك الطلابي</p>
+      </header>
+
+      {toast && (
+        <div className={`p-4 rounded-xl font-bold text-sm ${toast.type === 'success' ? 'bg-primary-soft text-primary-dark' : 'bg-danger-soft text-danger'}`}>
+          {toast.msg}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 shadow-soft space-y-5">
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">نوع السلوك</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => { setType('positive'); setForm(f => ({ ...f, categoryId: '' })); }}
+              className={`p-4 rounded-xl font-bold text-sm border-2 transition ${type === 'positive' ? 'border-primary bg-primary-soft text-primary-dark' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+              ✅ إيجابي / تعزيز
+            </button>
+            <button type="button" onClick={() => { setType('negative'); setForm(f => ({ ...f, categoryId: '' })); }}
+              className={`p-4 rounded-xl font-bold text-sm border-2 transition ${type === 'negative' ? 'border-danger bg-danger-soft text-danger' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+              ⚠️ سلبي / مخالفة لائحية
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">الطالب *</label>
+            <select value={form.studentId} onChange={e => setForm({ ...form, studentId: e.target.value })}
+              className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm focus:border-primary focus:outline-none transition bg-white">
+              <option value="">— اختر الطالب —</option>
+              {GRADES.map(g => (
+                <optgroup key={g} label={`الصف ${g}`}>
+                  {filteredStudents.filter(s => s.grade === g).map(s => (
+                    <option key={s.id} value={s.id}>{s.name} — {s.section}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">اسم المعلم المُبلغ *</label>
+            <select value={form.teacher} onChange={e => setForm({ ...form, teacher: e.target.value })}
+              className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm focus:border-primary focus:outline-none transition bg-white">
+              {TEACHERS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">
+            {type === 'positive' ? 'بند التعزيز *' : 'البند اللائحي *'}
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {categories.map(c => (
+              <button type="button" key={c.id}
+                onClick={() => setForm({ ...form, categoryId: c.id })}
+                className={`text-right p-3 rounded-xl text-sm font-bold border-2 transition flex items-center justify-between
+                  ${form.categoryId === c.id
+                    ? (type === 'positive' ? 'border-primary bg-primary-soft' : 'border-danger bg-danger-soft')
+                    : 'border-slate-200 hover:border-slate-300'}`}>
+                <span className="truncate">{c.label}</span>
+                <span className={`text-xs font-black px-2 py-0.5 rounded-md mr-2
+                  ${type === 'positive' ? 'bg-primary text-white' : 'bg-danger text-white'}`}>
+                  {type === 'positive' ? '+' : '-'}{c.points}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {selectedCat && (
+          <div className={`p-3 rounded-xl text-sm font-bold text-center
+            ${type === 'positive' ? 'bg-primary-soft text-primary-dark' : 'bg-danger-soft text-danger'}`}>
+            النقاط المحتسبة: {type === 'positive' ? '+' : '-'}{selectedCat.points}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">ملاحظات إضافية</label>
+          <textarea rows="3" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+            placeholder="وصف مختصر للحالة أو الإجراء المتخذ..."
+            className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm focus:border-primary focus:outline-none transition resize-none" />
+        </div>
+
+        <div className="flex gap-3">
+          <button type="submit"
+            className="flex-1 bg-primary hover:bg-primary-dark text-white font-black py-3.5 rounded-xl shadow-soft transition">
+            💾 حفظ التسجيل
+          </button>
+          <button type="button" onClick={() => setForm({ studentId: '', categoryId: '', description: '', teacher: TEACHERS[0] })}
+            className="px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl transition">
+            مسح
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* ============================================================
+   سجل السلوكيات
+   ============================================================ */
+function BehaviorLog({ students, behaviors, onArchive, onDelete }) {
+  const [search, setSearch] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(1);
+  const perPage = 15;
+
+  const studentMap = useMemo(() => Object.fromEntries(students.map(s => [s.id, s])), [students]);
+
+  const filtered = useMemo(() => {
+    return behaviors.filter(b => {
+      if (!showArchived && b.archived) return false;
+      if (showArchived && !b.archived) return false;
+      const st = studentMap[b.studentId];
+      if (!st) return false;
+      if (gradeFilter !== 'all' && st.grade !== Number(gradeFilter)) return false;
+      if (typeFilter !== 'all' && b.type !== typeFilter) return false;
+      if (search) {
+        const q = search.trim();
+        return st.name.includes(q) || b.category.includes(q) || b.teacher.includes(q);
+      }
+      return true;
+    });
+  }, [behaviors, gradeFilter, typeFilter, search, showArchived, studentMap]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const current = filtered.slice((page - 1) * perPage, page * perPage);
+  useEffect(() => { setPage(1); }, [search, gradeFilter, typeFilter, showArchived]);
+
+  const exportCSV = () => {
+    const rows = [['التاريخ','الطالب','الصف','الفصل','النوع','البند','النقاط','المعلم','ملاحظات']];
+    filtered.forEach(b => {
+      const st = studentMap[b.studentId];
+      rows.push([
+        fmtDate(b.createdAt), st?.name || '', st?.grade || '', st?.section || '',
+        b.type === 'positive' ? 'إيجابي' : 'سلبي', b.category, b.points, b.teacher, b.description || '',
+      ]);
+    });
+    const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `سجل_السلوكيات_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+  };
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-800">سجل السلوكيات</h1>
+          <p className="text-sm text-slate-500 mt-1">{filtered.length} سجل مطابق للفلترة</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={exportCSV}
+            className="bg-white border-2 border-slate-200 hover:border-primary hover:text-primary text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition">
+            📥 تصدير CSV
+          </button>
+          <button onClick={() => setShowArchived(!showArchived)}
+            className={`font-bold px-4 py-2.5 rounded-xl text-sm transition ${showArchived ? 'bg-accent text-white' : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300'}`}>
+            {showArchived ? '📂 السجلات النشطة' : '📦 الأرشيف'}
+          </button>
+        </div>
+      </header>
+
+      <div className="bg-white rounded-2xl p-4 shadow-soft grid grid-cols-1 md:grid-cols-3 gap-3">
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 بحث بالاسم، البند، أو المعلم..."
+          className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-primary focus:outline-none" />
+        <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}
+          className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold focus:border-primary focus:outline-none bg-white">
+          <option value="all">جميع الصفوف</option>
+          {GRADES.map(g => <option key={g} value={g}>الصف {g}</option>)}
+        </select>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+          className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold focus:border-primary focus:outline-none bg-white">
+          <option value="all">جميع الأنواع</option>
+          <option value="positive">إيجابي فقط</option>
+          <option value="negative">سلبي فقط</option>
+        </select>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr className="text-right">
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">التاريخ</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">الطالب</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">الصف</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">النوع</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">البند</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">النقاط</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">المعلم</th>
+                <th className="px-4 py-3 font-black text-slate-700 text-xs">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {current.map(b => {
+                const st = studentMap[b.studentId];
+                const isPos = b.type === 'positive';
+                return (
+                  <tr key={b.id} className="border-b border-slate-50 hover:bg-slate-50/60 transition">
+                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{fmtDate(b.createdAt)}</td>
+                    <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{st?.name}</td>
+                    <td className="px-4 py-3 text-xs"><Badge color="slate">{st?.grade} / {st?.section}</Badge></td>
+                    <td className="px-4 py-3">
+                      <Badge color={isPos ? 'green' : 'red'}>{isPos ? 'إيجابي' : 'سلبي'}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-700 max-w-[220px] truncate">{b.category}</td>
+                    <td className="px-4 py-3">
+                      <span className={`font-black ${isPos ? 'text-primary' : 'text-danger'}`}>{isPos ? '+' : ''}{b.points}</span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{b.teacher}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        {!b.archived ? (
+                          <button onClick={() => onArchive(b.id)}
+                            title="أرشفة" className="p-1.5 hover:bg-amber-100 rounded-lg transition text-xs">📦</button>
+                        ) : (
+                          <button onClick={() => onArchive(b.id)}
+                            title="استعادة" className="p-1.5 hover:bg-primary-soft rounded-lg transition text-xs">♻️</button>
+                        )}
+                        <button onClick={() => { if (confirm('هل أنت متأكد من حذف هذا السجل؟')) onDelete(b.id); }}
+                          title="حذف" className="p-1.5 hover:bg-danger-soft rounded-lg transition text-xs">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {current.length === 0 && (
+                <tr><td colSpan="8" className="text-center py-12 text-slate-400">لا توجد سجلات مطابقة</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50">
+            <div className="text-xs text-slate-500">صفحة {page} من {totalPages}</div>
+            <div className="flex gap-1">
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 disabled:opacity-40">السابق</button>
+              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 disabled:opacity-40">التالي</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   الطلبة
+   ============================================================ */
+function Students({ students, behaviors }) {
+  const [search, setSearch] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
+
+  const stats = useMemo(() => {
+    const map = {};
+    students.forEach(s => { map[s.id] = { pos: 0, neg: 0, total: 0 }; });
+    behaviors.filter(b => !b.archived).forEach(b => {
+      if (map[b.studentId]) {
+        map[b.studentId].total += b.points;
+        if (b.type === 'positive') map[b.studentId].pos++;
+        else map[b.studentId].neg++;
+      }
+    });
+    return map;
+  }, [students, behaviors]);
+
+  const filtered = students.filter(s => {
+    if (gradeFilter !== 'all' && s.grade !== Number(gradeFilter)) return false;
+    if (search && !s.name.includes(search)) return false;
+    return true;
+  });
+
+  const selectedBehaviors = selected ? behaviors.filter(b => b.studentId === selected.id && !b.archived).slice(0, 30) : [];
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header>
+        <h1 className="text-2xl lg:text-3xl font-black text-slate-800">سجل الطلبة</h1>
+        <p className="text-sm text-slate-500 mt-1">{students.length} طالباً مسجلاً في المدرسة</p>
+      </header>
+
+      <div className="bg-white rounded-2xl p-4 shadow-soft grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 بحث باسم الطالب..."
+          className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-primary focus:outline-none" />
+        <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}
+          className="rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm font-bold focus:border-primary focus:outline-none bg-white">
+          <option value="all">جميع الصفوف</option>
+          {GRADES.map(g => <option key={g} value={g}>الصف {g}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filtered.map(s => {
+          const st = stats[s.id] || { pos: 0, neg: 0, total: 0 };
+          const risk = st.neg >= 4 ? 'high' : st.neg >= 2 ? 'medium' : 'low';
+          const riskLabel = { high: 'أولوية عالية', medium: 'متابعة', low: 'منتظم' }[risk];
+          const riskColor = { high: 'red', medium: 'amber', low: 'green' }[risk];
+          return (
+            <button key={s.id} onClick={() => setSelected(s)}
+              className="bg-white rounded-2xl p-4 shadow-soft hover:shadow-lg transition text-right">
+              <div className="flex items-start justify-between gap-2">
+                <div className="w-12 h-12 rounded-xl bg-primary-soft flex items-center justify-center font-black text-primary-dark text-lg flex-shrink-0">
+                  {s.name.charAt(0)}
+                </div>
+                <Badge color={riskColor}>{riskLabel}</Badge>
+              </div>
+              <div className="font-bold text-sm text-slate-800 mt-3 leading-tight">{s.name}</div>
+              <div className="text-xs text-slate-500 mt-1">الصف {s.grade} / {s.section}</div>
+              <div className="flex items-center gap-2 mt-3 text-xs">
+                <span className="bg-primary-soft text-primary-dark font-bold px-2 py-0.5 rounded-md">+{st.pos}</span>
+                <span className="bg-danger-soft text-danger font-bold px-2 py-0.5 rounded-md">-{st.neg}</span>
+                <span className="text-slate-400 mr-auto font-bold">
+                  الرصيد: <span className={st.total >= 0 ? 'text-primary' : 'text-danger'}>{st.total}</span>
+                </span>
+              </div>
+            </button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="col-span-full text-center py-12 text-slate-400 bg-white rounded-2xl">لا توجد نتائج</div>
+        )}
+      </div>
+
+      {selected && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
+          <div onClick={e => e.stopPropagation()}
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-6 border-b border-slate-100 flex items-start justify-between">
+              <div>
+                <h3 className="font-black text-xl text-slate-800">{selected.name}</h3>
+                <p className="text-sm text-slate-500 mt-1">الصف {selected.grade} / {selected.section} · ولي الأمر: {selected.guardian}</p>
+                <p className="text-xs text-slate-400 mt-1">📞 {selected.phone}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="p-2 hover:bg-slate-100 rounded-lg">✕</button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <h4 className="font-bold text-sm text-slate-700 mb-3">سجل السلوكيات ({selectedBehaviors.length})</h4>
+              <div className="space-y-2">
+                {selectedBehaviors.map(b => (
+                  <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${b.type === 'positive' ? 'bg-primary text-white' : 'bg-danger text-white'}`}>
+                      {b.type === 'positive' ? '+' : '-'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-slate-800 truncate">{b.category}</div>
+                      <div className="text-[10px] text-slate-500">{fmtDate(b.createdAt)} · {b.teacher}</div>
+                    </div>
+                    <Badge color={b.type === 'positive' ? 'green' : 'red'}>{b.points > 0 ? '+' : ''}{b.points}</Badge>
+                  </div>
+                ))}
+                {selectedBehaviors.length === 0 && <div className="text-center text-slate-400 py-8 text-sm">لا توجد سجلات</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   الإرشاد الذكي
+   ============================================================ */
+function AIInsights({ students, behaviors }) {
+  const analysis = useMemo(() => runAIAnalysis(students, behaviors), [students, behaviors]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 900);
+  };
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-800">🧠 الإرشاد التربوي الذكي</h1>
+          <p className="text-sm text-slate-500 mt-1">تحليل تلقائي للسلوكيات مع توصيات تربوية مقترحة</p>
+        </div>
+        <button onClick={refresh}
+          className="bg-primary hover:bg-primary-dark text-white font-bold px-5 py-2.5 rounded-xl shadow-soft transition">
+          {refreshing ? '⏳ جاري التحليل...' : '🔄 تحديث التحليل'}
+        </button>
+      </header>
+
+      <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl p-6 shadow-soft">
+        <div className="text-xs font-bold opacity-80">ملخص تنفيذي</div>
+        <div className="text-lg font-black mt-2 leading-relaxed">
+          تم تحليل {analysis.in30.length} سجل خلال آخر 30 يوماً.
+          {analysis.riskStudents.length > 0
+            ? ` يوجد ${analysis.riskStudents.length} طالباً يحتاجون متابعة سلوكية.`
+            : ' جميع الطلبة في المستوى الطبيعي.'}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl p-6 shadow-soft">
+          <h3 className="font-black text-slate-800 mb-4">📌 التوصيات التربوية المقترحة</h3>
+          <div className="space-y-3">
+            {analysis.recommendations.map((r, i) => (
+              <div key={i} className={`p-4 rounded-xl border-r-4 text-sm leading-relaxed
+                ${r.level === 'danger' ? 'bg-danger-soft border-danger text-rose-900' :
+                  r.level === 'warning' ? 'bg-accent-soft border-accent text-amber-900' :
+                  r.level === 'info' ? 'bg-blue-50 border-blue-500 text-blue-900' :
+                  'bg-primary-soft border-primary text-primary-dark'}`}>
+                <div className="font-bold mb-1">{r.icon} توصية {i + 1}</div>
+                {r.text}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-soft">
+          <h3 className="font-black text-slate-800 mb-4">🔁 الأنماط السلوكية الأكثر تكراراً</h3>
+          {analysis.repeatedPatterns.length === 0 ? (
+            <div className="text-center text-slate-400 py-8 text-sm">لا توجد أنماط متكررة</div>
+          ) : (
+            <div className="space-y-3">
+              {analysis.repeatedPatterns.map((p, i) => {
+                const max = analysis.repeatedPatterns[0].count;
+                const pct = (p.count / max) * 100;
+                return (
+                  <div key={i}>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-bold text-slate-700 truncate">{p.cat}</span>
+                      <span className="text-danger font-black">{p.count}</span>
+                    </div>
+                    <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-l from-rose-400 to-danger rounded-full"
+                        style={{ width: `${pct}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-soft">
+        <h3 className="font-black text-slate-800 mb-4">🎯 الطلبة ذوو الأولوية</h3>
+        {analysis.riskStudents.length === 0 ? (
+          <div className="text-center text-primary py-8 font-bold">🟢 لا يوجد طلبة في مستوى خطر حالياً</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {analysis.riskStudents.slice(0, 10).map(s => (
+              <div key={s.id} className="p-4 rounded-xl border-2 border-slate-100 flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white ${s.risk === 'high' ? 'bg-danger' : 'bg-accent'}`}>
+                  {s.risk === 'high' ? '!' : '!'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-slate-800 truncate">{s.name}</div>
+                  <div className="text-xs text-slate-500">الصف {s.grade} / {s.section}</div>
+                  <div className="text-xs mt-1">
+                    <span className="text-danger font-bold">{s.negCount} مخالفة</span>
+                    <span className="text-slate-400 mx-1">·</span>
+                    <span className="text-primary font-bold">{s.posCount} تعزيز</span>
+                  </div>
+                </div>
+                <Badge color={s.risk === 'high' ? 'red' : 'amber'}>
+                  {s.risk === 'high' ? 'خطر مرتفع' : 'متابعة'}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   التنبيهات
+   ============================================================ */
+function Alerts({ students, behaviors, resolved, onResolve }) {
+  const studentMap = useMemo(() => Object.fromEntries(students.map(s => [s.id, s])), [students]);
+
+  // توليد التنبيهات تلقائياً
+  const alerts = useMemo(() => {
+    const list = [];
+    const now = Date.now();
+    const in30 = behaviors.filter(b => !b.archived && now - b.createdAt <= 30 * 86400000);
+    const byStudent = {};
+    in30.forEach(b => {
+      if (!byStudent[b.studentId]) byStudent[b.studentId] = { neg: 0, pos: 0 };
+      if (b.type === 'negative') byStudent[b.studentId].neg++;
+      else byStudent[b.studentId].pos++;
+    });
+
+    Object.entries(byStudent).forEach(([sid, s]) => {
+      const st = studentMap[sid];
+      if (!st) return;
+      const key = sid + '_risk';
+      if (s.neg >= 3) {
+        list.push({
+          id: key,
+          studentId: sid,
+          type: 'risk_threshold',
+          severity: s.neg >= 5 ? 'high' : 'medium',
+          title: 'استدعاء ولي أمر',
+          message: `${st.name} (الصف ${st.grade}) لديه ${s.neg} مخالفات خلال 30 يوماً. يُنصح باستدعاء ولي الأمر.`,
+          createdAt: now,
+        });
+      }
+      if (s.neg > s.pos * 2 && s.neg >= 2) {
+        list.push({
+          id: sid + '_trend',
+          studentId: sid,
+          type: 'behavior_repeat',
+          severity: 'medium',
+          title: 'تراجع في السلوك الإيجابي',
+          message: `${st.name} يسجل ${s.neg} مخالفة مقابل ${s.pos} تعزيز. يُوصى بتدخل إرشادي.`,
+          createdAt: now,
+        });
+      }
+    });
+
+    return list.filter(a => !resolved.includes(a.id));
+  }, [behaviors, students, resolved, studentMap]);
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header>
+        <h1 className="text-2xl lg:text-3xl font-black text-slate-800">🔔 التنبيهات التلقائية</h1>
+        <p className="text-sm text-slate-500 mt-1">{alerts.length} تنبيه نشط يحتاج تدخلاً</p>
+      </header>
+
+      {alerts.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center shadow-soft">
+          <div className="text-5xl mb-3">✅</div>
+          <div className="font-black text-primary text-lg">لا توجد تنبيهات نشطة</div>
+          <div className="text-sm text-slate-500 mt-1">جميع الحالات تحت السيطرة</div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map(a => (
+            <div key={a.id} className={`bg-white rounded-2xl p-5 shadow-soft border-r-4 ${a.severity === 'high' ? 'border-danger' : 'border-accent'}`}>
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${a.severity === 'high' ? 'bg-danger-soft' : 'bg-accent-soft'}`}>
+                  {a.severity === 'high' ? '🚨' : '⚠️'}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-slate-800">{a.title}</span>
+                    <Badge color={a.severity === 'high' ? 'red' : 'amber'}>
+                      {a.severity === 'high' ? 'عاجل' : 'متوسط'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 mt-2 leading-relaxed">{a.message}</p>
+                </div>
+                <button onClick={() => onResolve(a.id)}
+                  className="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-xl text-xs transition flex-shrink-0">
+                  ✓ تمت المعالجة
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resolved.length > 0 && (
+        <div className="text-center">
+          <button onClick={() => {
+            if (confirm('إعادة تفعيل جميع التنبيهات المعالجة؟')) {
+              // ستتم إعادة التعيين من الأب
+              window.__resetResolved && window.__resetResolved();
+            }
+          }} className="text-xs text-slate-500 hover:text-primary font-bold">
+            إعادة تفعيل التنبيهات المعالجة ({resolved.length})
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   التقارير
+   ============================================================ */
+function Reports({ students, behaviors }) {
+  const [reportType, setReportType] = useState('student');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState(5);
+  const [preview, setPreview] = useState(null);
+
+  const studentMap = useMemo(() => Object.fromEntries(students.map(s => [s.id, s])), [students]);
+
+  const generateStudentReport = () => {
+    if (!selectedStudent) return alert('يرجى اختيار الطالب');
+    const st = studentMap[selectedStudent];
+    const bs = behaviors.filter(b => b.studentId === selectedStudent && !b.archived)
+      .sort((a, b) => b.createdAt - a.createdAt);
+    const pos = bs.filter(b => b.type === 'positive').length;
+    const neg = bs.filter(b => b.type === 'negative').length;
+    const balance = bs.reduce((sum, b) => sum + b.points, 0);
+    setPreview({ kind: 'student', student: st, behaviors: bs, stats: { pos, neg, balance } });
+  };
+
+  const generateGradeReport = () => {
+    const gradeStudents = students.filter(s => s.grade === selectedGrade);
+    const ids = new Set(gradeStudents.map(s => s.id));
+    const bs = behaviors.filter(b => ids.has(b.studentId) && !b.archived);
+    const studentRows = gradeStudents.map(s => {
+      const sbs = bs.filter(b => b.studentId === s.id);
+      return {
+        ...s,
+        pos: sbs.filter(b => b.type === 'positive').length,
+        neg: sbs.filter(b => b.type === 'negative').length,
+        balance: sbs.reduce((sum, b) => sum + b.points, 0),
+      };
+    }).sort((a, b) => b.balance - a.balance);
+    setPreview({ kind: 'grade', grade: selectedGrade, students: studentRows });
+  };
+
+  const printReport = () => window.print();
+
+  return (
+    <div className="space-y-6 fade-in">
+      <header className="no-print">
+        <h1 className="text-2xl lg:text-3xl font-black text-slate-800">📄 التقارير الرسمية</h1>
+        <p className="text-sm text-slate-500 mt-1">توليد تقارير فردية وجماعية قابلة للطباعة والأرشفة</p>
+      </header>
+
+      <div className="bg-white rounded-2xl p-6 shadow-soft no-print">
+        <div className="flex gap-2 mb-6">
+          <button onClick={() => { setReportType('student'); setPreview(null); }}
+            className={`flex-1 py-3 rounded-xl font-bold text-sm transition ${reportType === 'student' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'}`}>
+            👤 تقرير طالب فردي
+          </button>
+          <button onClick={() => { setReportType('grade'); setPreview(null); }}
+            className={`flex-1 py-3 rounded-xl font-bold text-sm transition ${reportType === 'grade' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'}`}>
+            👥 تقرير صف كامل
+          </button>
+        </div>
+
+        {reportType === 'student' ? (
+          <div className="space-y-4">
+            <select value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)}
+              className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm focus:border-primary focus:outline-none bg-white">
+              <option value="">— اختر الطالب —</option>
+              {GRADES.map(g => (
+                <optgroup key={g} label={`الصف ${g}`}>
+                  {students.filter(s => s.grade === g).map(s => (
+                    <option key={s.id} value={s.id}>{s.name} — {s.section}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <button onClick={generateStudentReport}
+              className="w-full bg-primary hover:bg-primary-dark text-white font-black py-3 rounded-xl transition">
+              🔍 توليد التقرير
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-5 gap-2">
+              {GRADES.map(g => (
+                <button key={g} onClick={() => setSelectedGrade(g)}
+                  className={`py-3 rounded-xl font-bold text-sm transition ${selectedGrade === g ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                  الصف {g}
+                </button>
+              ))}
+            </div>
+            <button onClick={generateGradeReport}
+              className="w-full bg-primary hover:bg-primary-dark text-white font-black py-3 rounded-xl transition">
+              🔍 توليد التقرير
+            </button>
+          </div>
+        )}
+      </div>
+
+      {preview && (
+        <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
+          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between no-print">
+            <span className="text-sm font-bold text-slate-700">معاينة التقرير</span>
+            <div className="flex gap-2">
+              <button onClick={printReport}
+                className="bg-primary hover:bg-primary-dark text-white font-bold px-4 py-2 rounded-lg text-xs">
+                🖨️ طباعة / حفظ PDF
+              </button>
+              <button onClick={() => setPreview(null)}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-lg text-xs">
+                إغلاق
+              </button>
+            </div>
+          </div>
+
+          <div className="p-8 print:p-0" id="report-content">
+            {/* ترويسة رسمية */}
+            <div className="text-center border-b-4 border-primary pb-4 mb-6">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <Logo size="lg" />
+                <div className="text-right">
+                  <div className="font-black text-xl text-primary">مدرسة المسعى للتعليم الأساسي للبنين (٥-٩)</div>
+                  <div className="text-xs text-slate-500">وزارة التربية والتعليم — سلطنة عُمان</div>
+                </div>
+              </div>
+              <div className="text-lg font-black text-slate-800 mt-3">
+                {preview.kind === 'student' ? 'تقرير السلوك الطلابي الفردي' : `تقرير السلوك الجماعي — الصف ${preview.grade}`}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                تاريخ الإصدار: {new Date().toLocaleDateString('ar-OM', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+            </div>
+
+            {preview.kind === 'student' && (
+              <>
+                <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+                  <div><span className="font-bold text-slate-500">اسم الطالب:</span> <span className="font-black">{preview.student.name}</span></div>
+                  <div><span className="font-bold text-slate-500">الصف / الفصل:</span> <span className="font-black">{preview.student.grade} / {preview.student.section}</span></div>
+                  <div><span className="font-bold text-slate-500">ولي الأمر:</span> <span className="font-black">{preview.student.guardian}</span></div>
+                  <div><span className="font-bold text-slate-500">الهاتف:</span> <span className="font-black">{preview.student.phone}</span></div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="bg-primary-soft rounded-xl p-3 text-center">
+                    <div className="text-xs text-primary-dark font-bold">التعزيزات</div>
+                    <div className="text-2xl font-black text-primary">{preview.stats.pos}</div>
+                  </div>
+                  <div className="bg-danger-soft rounded-xl p-3 text-center">
+                    <div className="text-xs text-danger font-bold">المخالفات</div>
+                    <div className="text-2xl font-black text-danger">{preview.stats.neg}</div>
+                  </div>
+                  <div className="bg-slate-100 rounded-xl p-3 text-center">
+                    <div className="text-xs text-slate-600 font-bold">الرصيد</div>
+                    <div className={`text-2xl font-black ${preview.stats.balance >= 0 ? 'text-primary' : 'text-danger'}`}>
+                      {preview.stats.balance}
+                    </div>
+                  </div>
+                </div>
+
+                <table className="w-full text-xs border-collapse mb-6">
+                  <thead>
+                    <tr className="bg-primary text-white">
+                      <th className="border border-slate-300 px-2 py-2 font-bold">التاريخ</th>
+                      <th className="border border-slate-300 px-2 py-2 font-bold">النوع</th>
+                      <th className="border border-slate-300 px-2 py-2 font-bold">البند</th>
+                      <th className="border border-slate-300 px-2 py-2 font-bold">النقاط</th>
+                      <th className="border border-slate-300 px-2 py-2 font-bold">المعلم</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.behaviors.slice(0, 25).map(b => (
+                      <tr key={b.id}>
+                        <td className="border border-slate-300 px-2 py-1.5 text-center">{fmtDate(b.createdAt)}</td>
+                        <td className="border border-slate-300 px-2 py-1.5 text-center">{b.type === 'positive' ? 'إيجابي' : 'سلبي'}</td>
+                        <td className="border border-slate-300 px-2 py-1.5">{b.category}</td>
+                        <td className={`border border-slate-300 px-2 py-1.5 text-center font-bold ${b.type === 'positive' ? 'text-primary' : 'text-danger'}`}>
+                          {b.points > 0 ? '+' : ''}{b.points}
+                        </td>
+                        <td className="border border-slate-300 px-2 py-1.5 text-center">{b.teacher}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
+            {preview.kind === 'grade' && (
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-primary text-white">
+                    <th className="border border-slate-300 px-2 py-2 font-bold">#</th>
+                    <th className="border border-slate-300 px-2 py-2 font-bold">اسم الطالب</th>
+                    <th className="border border-slate-300 px-2 py-2 font-bold">الفصل</th>
+                    <th className="border border-slate-300 px-2 py-2 font-bold">تعزيزات</th>
+                    <th className="border border-slate-300 px-2 py-2 font-bold">مخالفات</th>
+                    <th className="border border-slate-300 px-2 py-2 font-bold">الرصيد</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.students.map((s, i) => (
+                    <tr key={s.id}>
+                      <td className="border border-slate-300 px-2 py-1.5 text-center">{i + 1}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 font-bold">{s.name}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 text-center">{s.section}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 text-center text-primary font-bold">{s.pos}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 text-center text-danger font-bold">{s.neg}</td>
+                      <td className={`border border-slate-300 px-2 py-1.5 text-center font-black ${s.balance >= 0 ? 'text-primary' : 'text-danger'}`}>{s.balance}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div className="mt-10 flex justify-between text-xs">
+              <div className="text-center">
+                <div className="font-bold mb-12">توقيع الأخصائي الاجتماعي</div>
+                <div className="border-t border-slate-400 pt-1 px-8">.............................</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold mb-12">توقيع مدير المدرسة</div>
+                <div className="border-t border-slate-400 pt-1 px-8">.............................</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   التطبيق الرئيسي
+   ============================================================ */
+function App() {
+  const [state, setState] = useState(() => loadState());
+  const [page, setPage] = useState('dashboard');
+  const [resolvedAlerts, setResolvedAlerts] = useState([]);
+
+  // مزامنة مع التخزين المحلي
+  useEffect(() => { saveState(state); }, [state]);
+
+  const { students, behaviors } = state;
+
+  const addBehavior = useCallback((b) => {
+    setState(s => ({
+      ...s,
+      behaviors: [{
+        id: 'B' + Date.now(),
+        ...b,
+        createdAt: Date.now(),
+        archived: false,
+      }, ...s.behaviors],
+    }));
+  }, []);
+
+  const archiveBehavior = useCallback((id) => {
+    setState(s => ({
+      ...s,
+      behaviors: s.behaviors.map(b => b.id === id ? { ...b, archived: !b.archived } : b),
+    }));
+  }, []);
+
+  const deleteBehavior = useCallback((id) => {
+    setState(s => ({ ...s, behaviors: s.behaviors.filter(b => b.id !== id) }));
+  }, []);
+
+  const resetResolved = useCallback(() => setResolvedAlerts([]), []);
+  window.__resetResolved = resetResolved;
+
+  // حساب عدد التنبيهات النشطة للشريط الجانبي
+  const alertsCount = useMemo(() => {
+    const now = Date.now();
+    const in30 = behaviors.filter(b => !b.archived && now - b.createdAt <= 30 * 86400000);
+    const byStudent = {};
+    in30.forEach(b => {
+      if (!byStudent[b.studentId]) byStudent[b.studentId] = { neg: 0, pos: 0 };
+      if (b.type === 'negative') byStudent[b.studentId].neg++;
+      else byStudent[b.studentId].pos++;
+    });
+    let count = 0;
+    Object.entries(byStudent).forEach(([sid, s]) => {
+      if (s.neg >= 3 && !resolvedAlerts.includes(sid + '_risk')) count++;
+      if (s.neg > s.pos * 2 && s.neg >= 2 && !resolvedAlerts.includes(sid + '_trend')) count++;
+    });
+    return count;
+  }, [behaviors, resolvedAlerts]);
+
+  return (
+    <div className="min-h-screen flex flex-row-reverse bg-slate-50">
+      <Sidebar page={page} setPage={setPage} alertsCount={alertsCount} />
+      <main className="flex-1 overflow-x-hidden">
+        <div className="p-4 lg:p-8 pt-20 lg:pt-8">
+          {page === 'dashboard' && <Dashboard students={students} behaviors={behaviors} onNavigate={setPage} />}
+          {page === 'entry' && <BehaviorEntry students={students} onAdd={addBehavior} />}
+          {page === 'log' && <BehaviorLog students={students} behaviors={behaviors} onArchive={archiveBehavior} onDelete={deleteBehavior} />}
+          {page === 'students' && <Students students={students} behaviors={behaviors} />}
+          {page === 'ai' && <AIInsights students={students} behaviors={behaviors} />}
+          {page === 'alerts' && <Alerts students={students} behaviors={behaviors} resolved={resolvedAlerts} onResolve={(id) => setResolvedAlerts(r => [...r, id])} />}
+          {page === 'reports' && <Reports students={students} behaviors={behaviors} />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
